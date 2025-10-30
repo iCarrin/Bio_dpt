@@ -118,7 +118,6 @@ def Main():
         - Benchmark performance for large SNP sets.
         """
     
-    # real fetch snp
 
     # snp_df = Fetch_SNP_Data(["rs1799971", "rs12184297", "rs116801199", "rs12565286", "rs2977670", "rs28454925"], 30)# just here for testing.  , "rs599839"
 
