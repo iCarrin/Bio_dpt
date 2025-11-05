@@ -44,10 +44,17 @@ def Fetch_SNP_Data(rsids: List[str], flank_length: int = 800) -> list[dict]:
 
             # Extract allele string like "A/G" or "C/T"
             allele_str = mapping.get("allele_string", "")
+            ancestral = mapping.get("ancestral_allele")
+
+            #Isaiah change: I dropped any ancestral Alleles that we knew were normal
+            #In the future we should pull the list, split it, and have the user pick which ones they want.
             alleles = allele_str.split("/") if allele_str else []
+            if ancestral in ['A', 'C', 'G', 'T']:
+                alleles.remove(ancestral)
+
 
             # Ensure there are at least two alleles to work with
-            if len(alleles) < 2:
+            if len(alleles) < 1:
                 print(f"Warning: Less than 2 alleles for {rsid}. Skipping.")
                 continue
 
@@ -112,46 +119,50 @@ def Main():
         """
     
     # real fetch snp
-    # snp_df = Fetch_SNP_Data(["rs1799971"], 30)# just here for testing.  , "rs599839"
-  
-
-    # sudo data to speed up testing
-    snp_df = [{'snpID': 'rs1799971', 'allele': 'A', 'sequence': 'TGTGTTTGCACAGAAGAGTGCCCAGTGAAGAGACCTACTCCTTGGATCGCTTTGCGCAAAATCCACCCCTTTTCCCTCCTCCCTCCCTTCCAGCCTCCGAATCCCGCATGGCCCACGCTCCCCTCCTGCAGCGGTGCGGGGCAGGTGATGAGCCTCTGTGAACTACTAAGGTGGGAGGGGGCTATACGCAGAGGAGAATGTCAGATGCTCAGCTCGGTCCCCTCCGCCTGACGCTCCTCTCTGTCTCAGCCAGGACTGGTTTCTGTAAGAAACAGCAGGAGCTGTGGCAGCGGCGAAAGGAAGCGGCTGAGGCGCTTGGAACCCGAAAAGTCTCGGTGCTCCTGGCTACCTCGCACAGCGGTGCCCGCCCGGCCGTCAGTACCATGGACAGCAGCGCTGCCCCCACGAACGCCAGCAATTGCACTGATGCCTTGGCGTACTCAAGTTGCTCCCCAGCACCCAGCCCCGGTTCCTGGGTCAACTTGTCCCACTTAGATGGCAACCTGTCCGACCCATGCGGTCCGAACCGCACCGACCTGGGCGGGAGAGACAGCCTGTGCCCTCCGACCGGCAGTCCCTCCATGATCACGGCCATCACGATCATGGCCCTCTACTCCATCGTGTGCGTGGTGGGGCTCTTCGGAAACTTCCTGGTCATGTATGTGATTGTCAGGTAAGGAAAGCGCCAGGGCTCCGAGCGGAGGGTTCAGCGGCTTAAGGGGGTACAAAGAGACACCTAACTCCCAAGGCTCAATGTTGGGCGGGAGGATGAAAGAGGGGAGGTAAACTGGGGGGACTCTGGAGGAGACCACGGACAGTGATTGTTATTTCTATGAGAAAACCTACTTTTCTGTTTTTTCTTCAACTGATAAAGAAAGAATTCAAAATTTCAGGAGCAGAGAAGTTGCTTTGGTAAAAGCTACAAATGTCTAGGGGTGGGGGGCGGAGGGAAGCTATAGCATAGACTTGGAGCGCTTCCTTATACTGAGCAAAGAGGGCTC', 'position': 500}, {'snpID': 'rs1799971', 'allele': 'G', 'sequence': 'TGTGTTTGCACAGAAGAGTGCCCAGTGAAGAGACCTACTCCTTGGATCGCTTTGCGCAAAATCCACCCCTTTTCCCTCCTCCCTCCCTTCCAGCCTCCGAATCCCGCATGGCCCACGCTCCCCTCCTGCAGCGGTGCGGGGCAGGTGATGAGCCTCTGTGAACTACTAAGGTGGGAGGGGGCTATACGCAGAGGAGAATGTCAGATGCTCAGCTCGGTCCCCTCCGCCTGACGCTCCTCTCTGTCTCAGCCAGGACTGGTTTCTGTAAGAAACAGCAGGAGCTGTGGCAGCGGCGAAAGGAAGCGGCTGAGGCGCTTGGAACCCGAAAAGTCTCGGTGCTCCTGGCTACCTCGCACAGCGGTGCCCGCCCGGCCGTCAGTACCATGGACAGCAGCGCTGCCCCCACGAACGCCAGCAATTGCACTGATGCCTTGGCGTACTCAAGTTGCTCCCCAGCACCCAGCCCCGGTTCCTGGGTCAACTTGTCCCACTTAGATGGCGACCTGTCCGACCCATGCGGTCCGAACCGCACCGACCTGGGCGGGAGAGACAGCCTGTGCCCTCCGACCGGCAGTCCCTCCATGATCACGGCCATCACGATCATGGCCCTCTACTCCATCGTGTGCGTGGTGGGGCTCTTCGGAAACTTCCTGGTCATGTATGTGATTGTCAGGTAAGGAAAGCGCCAGGGCTCCGAGCGGAGGGTTCAGCGGCTTAAGGGGGTACAAAGAGACACCTAACTCCCAAGGCTCAATGTTGGGCGGGAGGATGAAAGAGGGGAGGTAAACTGGGGGGACTCTGGAGGAGACCACGGACAGTGATTGTTATTTCTATGAGAAAACCTACTTTTCTGTTTTTTCTTCAACTGATAAAGAAAGAATTCAAAATTTCAGGAGCAGAGAAGTTGCTTTGGTAAAAGCTACAAATGTCTAGGGGTGGGGGGCGGAGGGAAGCTATAGCATAGACTTGGAGCGCTTCCTTATACTGAGCAAAGAGGGCTC', 'position': 500}]
+    # snp_df = Fetch_SNP_Data(["rs1799971", "rs12184297", "rs116801199", "rs12565286", "rs2977670", "rs28454925"], 30)# just here for testing.  , "rs599839"
 
 
-    primers = generate_allele_specific_primers(snp_df, 24, 26)
-    # print(primers)
-    print(f"number of snps {len(primers)}")
-    print(f"number of directions {len(primers[0])}")
-    print(f"number of primers in a direction {len(primers[0][0])}")
-    print(len(snp_df))
-    # for snp in primers:
+    snp_df = [{'snpID': 'rs1799971', 'allele': 'G', 'sequence': 'TCCTGGGTCAACTTGTCCCACTTAGATGGCGACCTGTCCGACCCATGCGGTCCGAACCGCA', 'position': 30}, 
+                {'snpID': 'rs12184297', 'allele': 'T', 'sequence': 'CTTTAAACCTCAACACATTATCAAGCATAATACTGTATATAATAAGTACTCAATACTGAAT', 'position': 30}, 
+                {'snpID': 'rs116801199', 'allele': 'G', 'sequence': 'TAAAAAATGAATCTAATAATGAGGAAACATGAGAAAAAACCAAACTGAGGGATATTCTACA', 'position': 30}, 
+                {'snpID': 'rs116801199', 'allele': 'T', 'sequence': 'TAAAAAATGAATCTAATAATGAGGAAACATTAGAAAAAACCAAACTGAGGGATATTCTACA', 'position': 30}, 
+                {'snpID': 'rs12565286', 'allele': 'G', 'sequence': 'GGAAGCATCCTTCACTATCTTCTACCAAGGGCTTCCTCCTTTGGTGCTTCAAAATTTTTTA', 'position': 30}, 
+                {'snpID': 'rs12565286', 'allele': 'C', 'sequence': 'GGAAGCATCCTTCACTATCTTCTACCAAGGCCTTCCTCCTTTGGTGCTTCAAAATTTTTTA', 'position': 30}, 
+                {'snpID': 'rs2977670', 'allele': 'G', 'sequence': 'AACCTTGGAGGACCTATTGCTTAAGGTGTGGGCCAAAGAAAGTAAGTTAGGGCAAGAGACT', 'position': 30}, 
+                {'snpID': 'rs2977670', 'allele': 'A', 'sequence': 'AACCTTGGAGGACCTATTGCTTAAGGTGTGAGCCAAAGAAAGTAAGTTAGGGCAAGAGACT', 'position': 30}, 
+                {'snpID': 'rs2977670', 'allele': 'C', 'sequence': 'AACCTTGGAGGACCTATTGCTTAAGGTGTGCGCCAAAGAAAGTAAGTTAGGGCAAGAGACT', 'position': 30}, 
+                {'snpID': 'rs2977670', 'allele': 'T', 'sequence': 'AACCTTGGAGGACCTATTGCTTAAGGTGTGTGCCAAAGAAAGTAAGTTAGGGCAAGAGACT', 'position': 30}, 
+                {'snpID': 'rs28454925', 'allele': 'C', 'sequence': 'GGATTCGAATGGAAAGACATGGAATGGACTCGATTGGAATGGGTTGGGATGGAATGATCTA', 'position': 30}, 
+                {'snpID': 'rs28454925', 'allele': 'G', 'sequence': 'GGATTCGAATGGAAAGACATGGAATGGACTGGATTGGAATGGGTTGGGATGGAATGATCTA', 'position': 30}, 
+                {'snpID': 'rs28454925', 'allele': 'T', 'sequence': 'GGATTCGAATGGAAAGACATGGAATGGACTTGATTGGAATGGGTTGGGATGGAATGATCTA', 'position': 30}]
+    # print(snp_df)
 
-
+    primers = generate_allele_specific_primers(snp_df, 24, 30)
+    # for prime_list in primers:
+    #     for primer in prime_list:
+    #         print(primer)
+    #     print()
+    # print(f"number of snps {len(primers)}")
+    # print(f"number of directions {len(primers[0])}")
+    # print(f"number of primers in a direction {len(primers[0][0])}")
+    # print(len(snp_df))
+    low = 0
+    high = 0
+    dimer = 0
+    hairpin = 0
+    for allele in primers:
+        
+        allele_list, fail_ints = filter_one_list_soft(allele, diff = 5.0)
+        low += fail_ints[0]
+        high += fail_ints[1]
+        dimer += fail_ints[2]
+        hairpin += fail_ints[3]
+        # print(allele_list)
+    print(low)
+    print(high)
+    print(dimer)
+    print(hairpin)
 
 if(__name__ == "__main__"):
     Main()
 
-
-# [[[{'snpID': 'rs1799971', 'allele': 'A', 'primer_sequence': 'TTAGATGACA', 'direction': 'forward', 'length': 10, 'tm': 18.129666660821954, 'gc_content': 0.3, 'hairpin_dg': 0.0, 'homodimer_dg': -72.98389370605668, 'success': True}, 
-#    {'snpID': 'rs1799971', 'allele': 'A', 'primer_sequence': 'TAGATGACA', 'direction': 'forward', 'length': 9, 'tm': 12.174837327327339, 'gc_content': 0.3333333333333333, 'hairpin_dg': 0.0, 'homodimer_dg': -72.98389370605668, 'success': True}, 
-#    {'snpID': 'rs1799971', 'allele': 'A', 'primer_sequence': 'AGATGACA', 'direction': 'forward', 'length': 8, 'tm': 7.16645091498475, 'gc_content': 0.375, 'hairpin_dg': 0.0, 'homodimer_dg': -72.98389370605668, 'success': True}, 
-#    {'snpID': 'rs1799971', 'allele': 'A', 'primer_sequence': 'GATGACA', 'direction': 'forward', 'length': 7, 'tm': -1.3545307221136227, 'gc_content': 0.42857142857142855, 'hairpin_dg': 0.0, 'homodimer_dg': -72.98389370605668, 'success': True}, 
-#    {'snpID': 'rs1799971', 'allele': 'A', 'primer_sequence': 'ATGACA', 'direction': 'forward', 'length': 6, 'tm': -17.656890150261773, 'gc_content': 0.3333333333333333, 'hairpin_dg': 0.0, 'homodimer_dg': -72.98389370605668, 'success': True}, 
-#    {'snpID': 'rs1799971', 'allele': 'A', 'primer_sequence': 'TGACA', 'direction': 'forward', 'length': 5, 'tm': -32.72779405071134, 'gc_content': 0.4, 'hairpin_dg': 0.0, 'homodimer_dg': -90.36415040613073, 'success': True}], 
-   
-#   [{'snpID': 'rs1799971', 'allele': 'A', 'primer_sequence': 'CGGACAGATT', 'direction': 'reverse', 'length': 10, 'tm': 27.203338243722783, 'gc_content': 0.5, 'hairpin_dg': 0.0, 'homodimer_dg': -73.96051300974477, 'success': True}, 
-#    {'snpID': 'rs1799971', 'allele': 'A', 'primer_sequence': 'GGACAGATT', 'direction': 'reverse', 'length': 9, 'tm': 16.740737528431566, 'gc_content': 0.4444444444444444, 'hairpin_dg': 0.0, 'homodimer_dg': -73.96051300974477, 'success': True}, 
-#    {'snpID': 'rs1799971', 'allele': 'A', 'primer_sequence': 'GACAGATT', 'direction': 'reverse', 'length': 8, 'tm': 6.159145398662417, 'gc_content': 0.375, 'hairpin_dg': 0.0, 'homodimer_dg': -73.96051300974477, 'success': True}, 
-#    {'snpID': 'rs1799971', 'allele': 'A', 'primer_sequence': 'ACAGATT', 'direction': 'reverse', 'length': 7, 'tm': -6.651097932493769, 'gc_content': 0.2857142857142857, 'hairpin_dg': 0.0, 'homodimer_dg': -73.96051300974477, 'success': True}, 
-#    {'snpID': 'rs1799971', 'allele': 'A', 'primer_sequence': 'CAGATT', 'direction': 'reverse', 'length': 6, 'tm': -19.54844111334802, 'gc_content': 0.3333333333333333, 'hairpin_dg': 0.0, 'homodimer_dg': -114.00720323817018, 'success': True}, 
-#    {'snpID': 'rs1799971', 'allele': 'A', 'primer_sequence': 'AGATT', 'direction': 'reverse', 'length': 5, 'tm': -45.52810475874327, 'gc_content': 0.2, 'hairpin_dg': 0.0, 'homodimer_dg': -130.5585090884421, 'success': True}]]]
-
-
-# [[[{'snpID': 'rs1799971', 'allele': 'A', 'primer_sequence': 'GGTCAACTTGTCCCACTTAGATGACA', 'direction': 'forward', 'length': 26, 'tm': 62.64091186246884, 'gc_content': 0.46153846153846156, 'hairpin_dg': 40.246484286148586, 'homodimer_dg': 11.618441795495414, 'success': True}, 
-#    {'snpID': 'rs1799971', 'allele': 'A', 'primer_sequence': 'GTCAACTTGTCCCACTTAGATGACA', 'direction': 'forward', 'length': 25, 'tm': 60.741963776567445, 'gc_content': 0.44, 'hairpin_dg': 39.085883205265475, 'homodimer_dg': -11.318504829494259, 'success': True}, 
-#    {'snpID': 'rs1799971', 'allele': 'A', 'primer_sequence': 'TCAACTTGTCCCACTTAGATGACA', 'direction': 'forward', 'length': 24, 'tm': 59.65329123118744, 'gc_content': 0.4166666666666667, 'hairpin_dg': 36.03872822148651, 'homodimer_dg': -32.43413848254389, 'success': True}], 
-  
-#   [{'snpID': 'rs1799971', 'allele': 'A', 'primer_sequence': 'TTCGGACCGCATGGGTCGGACAGATT', 'direction': 'reverse', 'length': 26, 'tm': 69.86363516091336, 'gc_content': 0.5769230769230769, 'hairpin_dg': 61.78877378212809, 'homodimer_dg': 27.76279186528285, 'success': True}, 
-#    {'snpID': 'rs1799971', 'allele': 'A', 'primer_sequence': 'TCGGACCGCATGGGTCGGACAGATT', 'direction': 'reverse', 'length': 25, 'tm': 69.765715142391, 'gc_content': 0.6, 'hairpin_dg': 61.78877378212809, 'homodimer_dg': 25.839909279650783, 'success': True}, 
-#    {'snpID': 'rs1799971', 'allele': 'A', 'primer_sequence': 'CGGACCGCATGGGTCGGACAGATT', 'direction': 'reverse', 'length': 24, 'tm': 68.83426028792064, 'gc_content': 0.625, 'hairpin_dg': 61.78877378212809, 'homodimer_dg': 24.30006522953198, 'success': True}]]]

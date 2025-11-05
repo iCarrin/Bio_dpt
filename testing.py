@@ -2,6 +2,8 @@ from Bio import Seq
 import numpy as np
 import prc_lib as plib
 # snp = 'ATGCAATTGGCCAAATTTGGGCCCAAAATTTTGGGGCCCCAAAAATTTTTGGGGGCCCCCAAAAAATTTTTTGGGGGGCCCCCC'
+import prc_lib as plib
+# snp = 'ATGCAATTGGCCAAATTTGGGCCCAAAATTTTGGGGCCCCAAAAATTTTTGGGGGCCCCCAAAAAATTTTTTGGGGGGCCCCCC'
 # max_len = 30
 # min_len = 18
 # for length in range(max_len-min_len-1):
