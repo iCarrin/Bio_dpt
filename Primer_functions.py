@@ -94,9 +94,7 @@ def evaluate_primers(primer_dict: dict) -> Dict:
         primer_dict["tm"] = tm_result
         primer_dict["gc_content"] = gc_content
         primer_dict["hairpin_dg"] = hairpin.dg 
-        print(hairpin)
         primer_dict["homodimer_dg"] = homodimer.dg 
-        print(homodimer)
         primer_dict["success"] = True
         return primer_dict
     except Exception as e:
@@ -128,100 +126,28 @@ def rank_primers(primers: list[dict], target_tm = 62.5, target_gc = 50, optimism
     return primers[:optimism]
 
 
+def filter_little(filter_name: str, old_list: list[dict], filter_function):
+    # fail_count is only 0 or 1, but we'll add it to a total to see what's bugging out
+    fail_count = 0
+    #the new list off of a filter of the passed in list. The filter will pick any allele that worked
+    new_list = list(filter(filter_function, old_list))
+    #if after the filter we don't have anything left
+    if not new_list:
+        #just use the old list
+        new_list = old_list
+        #print a statement for debugging purposes
+        print(f"{old_list[0]["snpID"]}: {filter_name} filter failed; using previous list.")
+        #the fail count goes up
+        fail_count = 1
+    #return the list that hopefully was able to filter and weather or not it failed
+    return(new_list, fail_count)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# def metrics_for_list(primer_list: List[str], evaluate: Callable[[str], Dict[str, float]]) -> pd.DataFrame:
-#     """
-#     Build metrics table for a list of primers.
-#     The columns are primer, tm, gc, hairprin, homodimer
-#     In R, we were doing 
-#             sapply(list_of_primers, calculate_tm)
-#             sapply(list_of_primers, calculate_hairpin)
-#             sapply(list_of_primers, calculate_homodimer)
-#     then we indexed those results to apply the thresholds per list.
-#     the calculate.... is used in the evaluate_primer function.           
-#     """
-
-#     if not primer_list:
-#         return pd.DataFrame(columns=["primer", "tm", "gc", "hairpin", "homodimer"])
-    
-#     rows = []
-
-#     for p in primer_list:
-#         m = evaluate(p)
-#         rows.append({
-#             "primer": p,
-#             "tm": float(m["tm"]),
-#             "gc": float(m.get("gc_content", m.get("gc", float("nan")))),
-#             "hairpin": float(m["hairpin"]),
-#             "homodimer": float(m["homodimer"]),
-#         })
-#     return pd.DataFrame(rows)
-
-# def _soft_keep(allele_list: list[dict], 
-#                predicate: value_to_pass_somehow, 
-#                keep_at_least: int,
-#                closeness_key: pd.Series) -> list[dict]:
-#     """
-#     If suficient rows pass the predicate, then only keep those
-#     Else keep the best keep_at_least rows by closest to the threshold
-
-#     R code to check.
-#     k = candidates[ sapply(candidates, calculate_homodimer)[2,] < Homodimer ]
-#     if (length(k) > 5) keep k
-#     else keep the ~5 closest to Homodimer
-#     """
-#     passed = []
-#     for primer in allele_list:
-#         if predicate == True:
-#             passed.append(primer)
-
-#     if len(passed) >= keep_at_least:
-#         return passed
-#     if not allele_list:
-#         return allele_list
-    
-#     k = min(keep_at_least, len(allele_list))
-
-#     return (allele_list.assign(_close=closeness_key.abs())
-#               .sort_values("_close")
-#               .head(k)
-#               .drop(columns="_close"))
 
 def filter_one_list_soft(allele_list: list[dict],
                          desired_tm: float = 60.0,
                          diff: float = 3.0,
                          homodimer_goal: float = 3.0,
-                         hairpin_goal: float = 3.0,
-                         keep_at_least: int = 5) -> list[dict]:
+                         hairpin_goal: float = 3.0) -> (list[dict], list[int]):
     
     """
     Soft filter a single candidate list such as the stage1_filter behavior
@@ -238,165 +164,24 @@ def filter_one_list_soft(allele_list: list[dict],
         Tm        < desired_tm + diff      # "above upper" trim
         Tm        > desired_tm - diff      # "below lower" trim
     """
-    low_fail = 0
-    high_fail = 0
-    dimer_fail = 0
-    hairpin_fail = 0
-
+    #make sure we're getting an actuall list of dictionaries
     if not allele_list:
-        return allele_list
-    snp_allele = allele_list[0]['snpID'] + "_" + allele_list[0]['allele']
-
-
-        # tm > min
-    # allele_list_phair.sort(key=lambda x: x["tm"])
-    allele_list_pltm = list(filter(lambda x : x["tm"] >= (desired_tm - diff), allele_list))
-    if not allele_list_pltm:
-        allele_list_pltm = allele_list
-        print("No primers passed low bound Tm filter; proceeding with post hair!!!!!!!")
-        for primer in allele_list:
-            print({snp_allele}, {primer["tm"]})
-        low_fail += 1
-    # print(f"number of primers for {snp_allele} after lower bound Tm filter: {len(allele_list_pltm)}")
-
+        raise Exception("There was not list of dictionaries passed in")
+    
+    # tm > min
+    allele_pltm, ltm_fail_count = filter_little("tm Min", allele_list, lambda x : x["tm"] >= (desired_tm - diff))
     # tm < max
-    # allele_list_pltm.sort(reverse = True, key=lambda x: x["tm"])
-    allele_list_phtm = list(filter(lambda x : x["tm"] <= (desired_tm + diff), allele_list_pltm))
-    if not allele_list_phtm:
-        allele_list_phtm = allele_list_pltm
-        print("No primers passed upper bound Tm filter; proceeding with post lower bound tm!!!!!!!")
-        for primer in allele_list_pltm:
-            print({snp_allele}, {primer["tm"]})
-        high_fail += 1
-    # print(f"number of primers for {snp_allele} after upper bound Tm filter: {len(allele_list_phtm)}")
-
+    allele_phtm, htm_fail_count = filter_little("tm Max", allele_pltm, lambda x : x["tm"] <= (desired_tm + diff))
+    # min < homodimer < max
+    allele_phomo, homo_fail_count = filter_little("homodimer", allele_phtm, lambda x : (homodimer_goal*-1) < x["homodimer_dg"] < homodimer_goal)
+    #min < hairpin < max
+    allele_phair, hair_fail_count = filter_little("hairpin", allele_phomo, lambda x : (hairpin_goal*-1) < x["hairpin_dg"] < hairpin_goal)
     
-        # homodimer < max
-    # allele_list.sort(key=lambda x: x["homodimer_dg"])
-    allele_list_phomo = list(filter(lambda x : (homodimer_goal*-1) < x["homodimer_dg"] < homodimer_goal, allele_list_phtm))
-    if not allele_list_phomo:
-        allele_list_phomo = allele_list_phtm
-        print("No primers passed homodimer filter; proceeding with allele list.")
-        for primer in allele_list_phtm:
-            print({snp_allele}, {primer["homodimer_dg"]})
-        dimer_fail += 1
-    # print(f"number of primers for {snp_allele} after homodimer filter: {len(allele_list_phomo)}")
-
-    # hairpin < max
-    # allele_list_phomo.sort(key=lambda x: x["hairpin_dg"])
-    allele_list_phair = list(filter(lambda x : (hairpin_goal*-1) < x["hairpin_dg"] < hairpin_goal, allele_list_phomo))
-    if not allele_list_phair:
-        allele_list_phair = allele_list_phomo
-        print("No primers passed hairpin filter; proceeding with post homo.")
-        for primer in allele_list_phomo:
-            print({snp_allele}, {primer["hairpin_dg"]})
-        hairpin_fail += 1
-    # print(f"number of primers for {snp_allele} after hairpin filter: {len(allele_list_phair)}")
-
-
-
-    # print(low_fail, high_fail)
-    return (low_fail, high_fail, dimer_fail, hairpin_fail)
-    # return allele_list_phtm[:min(keep_at_least, len(allele_list_phtm))]
-
-
-
-
-
-
-
-
-
-
-
-# def filter_primers(primers: list[dict],
-#                    desired_tm: float = 64.0,
-#                    diff: float = 3.0,
-#                    hairpin_goal: float = 45.0,
-#                    homodimer_goal: float = 45.0,
-#                    keep_at_least: int = 5) -> pd.DataFrame:
-#     """
-#     Filter applied per snpID, allele, direction.
-#     Keeps at least a few best available primers per group, 
-#     unless a group had none to start with.
-#     reurns a flat datafram with metrics so the downstream remain unchanged
-
-#     We are filtering per each SNP group and keeps some best available 
-#     Group candidates and collects sequences into lists.
-#     (In R, each row already carried lists. 
-#     We have candidates as rows, so we group to recreate per-group lists.)
-
-#     """
-
-#     """
-#     filter primers took in a allele_list (but we're going to loop it on list of dicts for simplicity's sake.)
-#     so I think I just need filter one list soft looped
-#     and _soft keep perhaps (maybe we do things differently than archalie)
-#     and I don't think we need metrics _for_list because the list's should already be made from generate_allele_specific_primers
+    # total_fails = [f"low temp fails: {ltm_fail_count}", f"high temp fails: {htm_fail_count}", f"homodimer fails: {homo_fail_count}", f"hairpin fails: {hair_fail_count}"]
+    # print(total_fails)
+    total_fails_ints = [ltm_fail_count, htm_fail_count, homo_fail_count, hair_fail_count]
     
-#     """
-#     if not primers:
-#         return primers
-
-#     # Group candidates per SNP/allele/direction
-#     grouped = (primers.groupby(["snpID", "allele", "direction"])
-#                       .agg({"primer_sequence": list})
-#                       .reset_index())
-#     #Isaiah note: shouldn't be necessary because they are already grouped into lists at that level
-
-#     # Apply soft filter to each group's list
-#     # Like stage1_filter() on each list in R, 
-#     # same staged thresholds and bottlenecks fallbacks
-#     def _apply(row):
-#         return filter_one_list_soft(
-#             row["primer_sequence"],
-#             evaluate=evaluate_primer,
-#             desired_tm=desired_tm,
-#             diff=diff,
-#             homodimer_goal=homodimer_goal,
-#             hairpin_goal=hairpin_goal,
-#             keep_at_least=keep_at_least
-#         )
-         
-
-#     grouped["kept_sequences"] = grouped.apply(_apply, axis=1)
-#     grouped = grouped[grouped["kept_sequences"].map(len) > 0]
-    
-#     # drop rows that ended empty, like farway empty
-#     if grouped.empty:
-#         return pd.DataFrame(columns=list(primers.columns) + ["tm","gc_content","hairpin","homodimer"])
-
-#     # Explode back to rows and attach metrics (so rank_primers() still works)
-#     # raank_primers will still receive a flat table with one primer per row 
-#     # with tm, gc_content, hairpin, and homodimer
-#     # the get_filter added substrings_count, maybe if we distinguish near/far
-#     # implement it? If not keep it simple.
-#     rows = []
-#     for _, r in grouped.iterrows():
-#         for seq in r["kept_sequences"]:
-#             m = evaluate_primer(seq)
-#             rows.append({
-#                 "snpID": r["snpID"],
-#                 "allele": r["allele"],
-#                 "direction": r["direction"],
-#                 "primer_sequence": seq,
-#                 "length": len(seq),
-#                 "tm": m["tm"],
-#                 "gc_content": m["gc_content"],
-#                 "hairpin": m["hairpin"],
-#                 "homodimer": m["homodimer"],
-#             })
-#     return pd.DataFrame(rows)
-
-
-
-
-
-
-
-
-
-
+    return (allele_phair, total_fails_ints)
 
 
 
