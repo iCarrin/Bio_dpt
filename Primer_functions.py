@@ -204,3 +204,29 @@ def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> 
     else:
         print(f"The length of your forward primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {seq_length}")
     return primers
+
+
+
+
+def Generate_Matching_Primers(snp_data, allele_specific_primers, min_dist: int = 800, max_dist: int = 1200): 
+    """
+        Generate matching primers for top  allele-specific primers.
+        TODO: Optimize primer pairing.
+        - Use primer3-py's designPrimers for more efficient pairing.
+        - Add checks for primer pair compatibility (e.g., Tm difference < 5Â°C).
+
+        in R it's "extract_substrings_far"
+
+        now what we want to do it go 800-1200 bp out and find a primer that passes the filter. 
+        we don't need mismatch, and there's rules about the far primer temp and stuff. Check the video on slack becuase I forgot (I'll pin it)
+
+        the old func found every and then filtered. We don't need to do that, just find one that passes the filter (far specific) and plays nice with all other close primers
+        (the virtue of passing the filter would mean it plays nice with all others, except for heterodimers. You'll have to call the heterodimer function from primer3py
+        and check every it with every close primer. Think about ways to make it faster/do it however you can to make it work and we can brain storm how to make it faster if we need)
+        (faster ideas like remembering what doesn't work, checking close primers against the far primer whole string instead of section of far primer string against all close primers)
+        
+        Focus on filtering the far primers for now. Checking them against all others is really a multiplexing problem.
+        good luck, no problem if this is a multi week problem
+        """
+    pass
+
