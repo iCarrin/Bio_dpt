@@ -124,6 +124,5 @@ def Main():
     # for snp in primers:
 
 
-
 if(__name__ == "__main__"):
     Main()

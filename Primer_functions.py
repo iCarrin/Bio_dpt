@@ -202,7 +202,7 @@ def Make_Primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> 
             trimmed = seq[length:]
             #take this part out of the loop, so we can have one dictionary that says the SNP ID and ALLELE and Direction, 
             #and then a list in that dictionary of sequence and lengths. Storing the name over and over seems redundant IDK
-            primary_primer= {
+            primers.append({
                 "snpID": snp_id,
                 "allele": allele,
                 "primer_sequence": trimmed,
@@ -210,9 +210,9 @@ def Make_Primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> 
                 "length": seq_length-length,
                 "tm" : primer3.bindings.calc_tm(trimmed),
                 "gc_content" : Calc_GC_Content(trimmed),
-                "hairpin_dg" : primer3.bindings.calc_hairpin(trimmed),
-                "homodimer_dg" : primer3.bindings.calc_homodimer(trimmed)
-            }
+                "hairpin_dg" : primer3.bindings.calc_hairpin(trimmed).dg,
+                "homodimer_dg" : primer3.bindings.calc_homodimer(trimmed).dg
+            })
             
     else:
         print(f"The length of your forward primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {seq_length}")
