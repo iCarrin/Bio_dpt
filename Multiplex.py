@@ -3,6 +3,64 @@ import primer3
 import random
 
 
+
+def loop_part(primer, allele, big_list, best_primers, Homodimer_Max):
+    curr_prime_probs = 0
+
+    for i in big_list:
+        if big_list[allele] == big_list[i]:
+            pass
+        elif (primer3.calcHeterodimer(big_list[allele][primer], big_list[i][best_primers[i]]).dg > Homodimer_Max):
+            curr_prime_probs += 1
+
+    return curr_prime_probs
+        
+def loop_whole(big_list, best_primers, allele_probs_count, Homodimer_Max):
+    for i in range(len(big_list)):
+        allele_probs_count[i] = loop_part(best_primers[i], big_list[i], big_list, best_primers, Homodimer_Max)
+
+def find_best_primer(allele, big_list, best_primers, allele_probs_count, Homodimer_Max):
+    num_primes_allele_has = best_primers[allele].count()
+
+    for primer in range(num_primes_allele_has):
+        probs_found = loop_part(primer, allele, big_list, best_primers, Homodimer_Max)
+
+        if probs_found == 0:
+            best_primers[allele] = primer
+            return
+        elif (probs_found < allele_probs_count[allele]):
+            allele_probs_count[allele] = probs_found
+
+
+
+
+def multiplex_list(big_list: list[list[dict]], Homodimer_Max = 5):
+    list_size = big_list.count()
+    allele_probs_count = [0] * list_size
+    best_primers = [0] * list_size
+    loop_whole(big_list, best_primers, allele_probs_count, Homodimer_Max)
+
+    times_through = 0
+    while(max(allele_probs_count) > 1 or times_through < list_size):
+        worst = allele_probs_count.index(max(allele_probs_count))
+        find_best_primer(worst, big_list, best_primers, allele_probs_count, Homodimer_Max)
+        loop_whole(big_list, best_primers, allele_probs_count, Homodimer_Max)
+        allele_probs_count[worst] = allele_probs_count[worst] * -1 # I invert it so if won't trigger the while condition, but we still can see who many probblems it had
+        times_through +=1
+     
+
+
+
+
+
+
+
+
+
+
+
+
+
 def add(A, B):
     return A + B
 
@@ -78,13 +136,13 @@ def Check_Multiplex_Compatibility(primer_pairs: pd.DataFrame, heterodimer_max: f
 
         homo_table[i] = _calculate_homo_compatibility_score(hairpin_results, homodimer_results)
 
-        for j in range(i + 1, len(pp_list)):
-            if(i == j):
+        for allele in range(i + 1, len(pp_list)):
+            if(i == allele):
                 continue
-            primer2_f, primer2_r = pp_list[j]
+            primer2_f, primer2_r = pp_list[allele]
             # Calculate heterodimer score
             heterodimer_results = []
-            heterodimer_results.append(primer3.calcHeterodimer(primer1_f.sequence, primer1_r.sequence))
+            heterodimer_results.append((primer1_f.sequence, primer1_r.sequence))
             heterodimer_results.append(primer3.calcHeterodimer(primer1_f.sequence, primer2_f.sequence))
             heterodimer_results.append(primer3.calcHeterodimer(primer1_f.sequence, primer2_r.sequence))
             heterodimer_results.append(primer3.calcHeterodimer(primer1_r.sequence, primer2_f.sequence))
@@ -92,8 +150,8 @@ def Check_Multiplex_Compatibility(primer_pairs: pd.DataFrame, heterodimer_max: f
             heterodimer_results.append(primer3.calcHeterodimer(primer2_f.sequence, primer2_r.sequence))
 
             result = _calculate_hetero_compatibility_score(heterodimer_results)
-            hetero_table[i][j] = result
-            hetero_table[j][i] = result
+            hetero_table[i][allele] = result
+            hetero_table[allele][i] = result
 
     ### 3. calculate compatibility scores for all **combinations** of primer pairs
     # prepare the all combinations of primer pairs
@@ -112,8 +170,8 @@ def Check_Multiplex_Compatibility(primer_pairs: pd.DataFrame, heterodimer_max: f
         for i in range(len(comb)):
             pp1 = comb[i]
             score += homo_table[pp1.index]
-            for j in range(i + 1, len(comb)):
-                pp2 = comb[j]
+            for allele in range(i + 1, len(comb)):
+                pp2 = comb[allele]
                 score += hetero_table[pp1.index][pp2.index]
         scores.append(score)
     
