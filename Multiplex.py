@@ -4,19 +4,21 @@ from itertools import combinations
 
 
 
-def multiplex_list(big_list: list[list[dict]], heterodimer_max = 5):
-    allele_combos = list(combinations(big_list,2))
+def multiplex_list(big_list: list[list[dict]], heterodimer_max = 50.0):
+
+    allele_combos = list(combinations(range(len(big_list)),2))
     list_size = len(big_list)
     problem_alleles = [0] * list_size
     golden_primers = [0] * list_size
 
 
     def get_heterodimer(left, right):
-       return primer3.calcHeterodimer(big_list[left][golden_primers[left]]["primer_sequence"], big_list[right][golden_primers[right]["primer_sequence"]]).dg
+       
+       return primer3.calc_heterodimer(big_list[left][golden_primers[left]]['primer_sequence'], big_list[right][golden_primers[right]]['primer_sequence']).dg
 
 
     def find_best_primer(allele):
-        num_primes_allele_has = len(golden_primers[allele])
+        num_primes_allele_has = len(big_list[allele])
 
         for primer in range(num_primes_allele_has):
             probs_found = 0
@@ -56,7 +58,7 @@ def multiplex_list(big_list: list[list[dict]], heterodimer_max = 5):
             fighting_alleles.append((left,right))
     
     out_list = []
-    for i in list_size:
+    for i in range(list_size):
        out_list.append(big_list[i][golden_primers[i]])
 
 
