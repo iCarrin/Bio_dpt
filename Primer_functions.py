@@ -1,6 +1,7 @@
 
 import re 
 from Bio.Seq import Seq
+# from Bio.SeqUtils import GC
 import logging
 from typing import Dict
 import primer3
@@ -58,6 +59,8 @@ def introduce_mismatch(primer_sequence: str) -> str:
 
     # Replace the base with its mismatch
     return primer_sequence[:pos] + mismatch + primer_sequence[pos + 1:]
+
+
 def calc_gc_content(sequence: str):
     gc_total = 0
     for nucleotide in sequence:
@@ -201,6 +204,7 @@ def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> 
 
             })
             
+
     else:
         print(f"The length of your forward primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {seq_length}")
     return primers

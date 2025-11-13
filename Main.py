@@ -1,6 +1,7 @@
 # from Multiplex import *
 from Output import *
 from Primer_functions import *
+from Multiplex import *
 import primer3
 import re # run 'pip install regex' if not already installed
 import time # to handle rate limiting
@@ -119,10 +120,11 @@ def Main():
         """
     
 
-    # snp_df = Fetch_SNP_Data(["rs1799971", "rs12184297", "rs116801199", "rs12565286", "rs2977670", "rs28454925"], 30)# just here for testing.  , "rs599839"
+    # snp_df = Fetch_SNP_Data(["rs1799971", "rs12184297", "rs116801199", "rs12565286", "rs2977670", "rs28454925", "rs116587930", "rs116720794", "rs4951859",\
+    #                           "rs148120343", "rs529266287", "rs79643588", "rs17396518", "rs983166", "rs28842593", "rs7014597", "rs599839"], 30)# just here for testing.  
 
 
-    snp_df = [{'snpID': 'rs1799971', 'allele': 'G', 'sequence': 'TCCTGGGTCAACTTGTCCCACTTAGATGGCGACCTGTCCGACCCATGCGGTCCGAACCGCA', 'position': 30}, 
+    snp_df = [  {'snpID': 'rs1799971', 'allele': 'G', 'sequence': 'TCCTGGGTCAACTTGTCCCACTTAGATGGCGACCTGTCCGACCCATGCGGTCCGAACCGCA', 'position': 30}, 
                 {'snpID': 'rs12184297', 'allele': 'T', 'sequence': 'CTTTAAACCTCAACACATTATCAAGCATAATACTGTATATAATAAGTACTCAATACTGAAT', 'position': 30}, 
                 {'snpID': 'rs116801199', 'allele': 'G', 'sequence': 'TAAAAAATGAATCTAATAATGAGGAAACATGAGAAAAAACCAAACTGAGGGATATTCTACA', 'position': 30}, 
                 {'snpID': 'rs116801199', 'allele': 'T', 'sequence': 'TAAAAAATGAATCTAATAATGAGGAAACATTAGAAAAAACCAAACTGAGGGATATTCTACA', 'position': 30}, 
@@ -134,8 +136,30 @@ def Main():
                 {'snpID': 'rs2977670', 'allele': 'T', 'sequence': 'AACCTTGGAGGACCTATTGCTTAAGGTGTGTGCCAAAGAAAGTAAGTTAGGGCAAGAGACT', 'position': 30}, 
                 {'snpID': 'rs28454925', 'allele': 'C', 'sequence': 'GGATTCGAATGGAAAGACATGGAATGGACTCGATTGGAATGGGTTGGGATGGAATGATCTA', 'position': 30}, 
                 {'snpID': 'rs28454925', 'allele': 'G', 'sequence': 'GGATTCGAATGGAAAGACATGGAATGGACTGGATTGGAATGGGTTGGGATGGAATGATCTA', 'position': 30}, 
-                {'snpID': 'rs28454925', 'allele': 'T', 'sequence': 'GGATTCGAATGGAAAGACATGGAATGGACTTGATTGGAATGGGTTGGGATGGAATGATCTA', 'position': 30}]
-    # print(snp_df)
+                {'snpID': 'rs28454925', 'allele': 'T', 'sequence': 'GGATTCGAATGGAAAGACATGGAATGGACTTGATTGGAATGGGTTGGGATGGAATGATCTA', 'position': 30}, 
+                {'snpID': 'rs116587930', 'allele': 'G', 'sequence': 'ATTTTCAACTTTTGTAAATCTCTGTTTTAGGTGGGCTTCTTACGTACAACTTGGAGTTGGG', 'position': 30}, 
+                {'snpID': 'rs116587930', 'allele': 'A', 'sequence': 'ATTTTCAACTTTTGTAAATCTCTGTTTTAGATGGGCTTCTTACGTACAACTTGGAGTTGGG', 'position': 30}, 
+                {'snpID': 'rs116720794', 'allele': 'C', 'sequence': 'CTCTAACAGGCATTTCAGAGTGAGGTGGGACGTTCTAGGGCACCTGTTTTGCAGATGCCCT', 'position': 30}, 
+                {'snpID': 'rs116720794', 'allele': 'T', 'sequence': 'CTCTAACAGGCATTTCAGAGTGAGGTGGGATGTTCTAGGGCACCTGTTTTGCAGATGCCCT', 'position': 30}, 
+                {'snpID': 'rs4951859', 'allele': 'C', 'sequence': 'TTTGCAGATGCCCTCAGGGTGGGGGAAGGGCAGCTTCCAGCCTTCCCAGTTCCAGCACTCT', 'position': 30}, 
+                {'snpID': 'rs4951859', 'allele': 'G', 'sequence': 'TTTGCAGATGCCCTCAGGGTGGGGGAAGGGGAGCTTCCAGCCTTCCCAGTTCCAGCACTCT', 'position': 30}, 
+                {'snpID': 'rs4951859', 'allele': 'T', 'sequence': 'TTTGCAGATGCCCTCAGGGTGGGGGAAGGGTAGCTTCCAGCCTTCCCAGTTCCAGCACTCT', 'position': 30}, 
+                {'snpID': 'rs148120343', 'allele': 'T', 'sequence': 'TCCCTTCCTTCCAATTCTCCTTCCAGCCTTTCTTGATTTCCAGAATGAGAAATCATTAAGT', 'position': 30}, 
+                {'snpID': 'rs148120343', 'allele': 'C', 'sequence': 'TCCCTTCCTTCCAATTCTCCTTCCAGCCTTCCTTGATTTCCAGAATGAGAAATCATTAAGT', 'position': 30}, 
+                {'snpID': 'rs529266287', 'allele': 'TA', 'sequence': 'AGAGAAAGTCCAGTCAATTTTATATAAGTTTAAAAAAAAGATGTGAAACCTATTTTCAGAAT', 'position': 30}, 
+                {'snpID': 'rs79643588', 'allele': 'A', 'sequence': 'CATGGTCTAGGGAAGGAGAATGAAACATCAAAAATAACTGCAATTCCCCACAGTACGTGTC', 'position': 30}, 
+                {'snpID': 'rs17396518', 'allele': 'T', 'sequence': 'GCAAAAATTTACAGAGAAGGAAATAGAGCTTCTCCCAAAATGTTAATAAAATTCTTAAAGG', 'position': 30}, 
+                {'snpID': 'rs17396518', 'allele': 'A', 'sequence': 'GCAAAAATTTACAGAGAAGGAAATAGAGCTACTCCCAAAATGTTAATAAAATTCTTAAAGG', 'position': 30}, 
+                {'snpID': 'rs17396518', 'allele': 'C', 'sequence': 'GCAAAAATTTACAGAGAAGGAAATAGAGCTCCTCCCAAAATGTTAATAAAATTCTTAAAGG', 'position': 30}, 
+                {'snpID': 'rs983166', 'allele': 'C', 'sequence': 'GGCTAATATAATACTTATGGAACACTACCACTGTGCCAGATACTACTGATAAATGTTATAT', 'position': 30}, 
+                {'snpID': 'rs983166', 'allele': 'G', 'sequence': 'GGCTAATATAATACTTATGGAACACTACCAGTGTGCCAGATACTACTGATAAATGTTATAT', 'position': 30}, 
+                {'snpID': 'rs983166', 'allele': 'T', 'sequence': 'GGCTAATATAATACTTATGGAACACTACCATTGTGCCAGATACTACTGATAAATGTTATAT', 'position': 30}, 
+                {'snpID': 'rs28842593', 'allele': 'A', 'sequence': 'GATATGTTTTGCATATGATACTCCATTGTAAAGCAGCAACAGCTAGAACTAAGCTGTTGTA', 'position': 30}, 
+                {'snpID': 'rs28842593', 'allele': 'C', 'sequence': 'GATATGTTTTGCATATGATACTCCATTGTACAGCAGCAACAGCTAGAACTAAGCTGTTGTA', 'position': 30}, 
+                {'snpID': 'rs7014597', 'allele': 'A', 'sequence': 'TGTCAAGGCCACCCTGGGCTTGAAGGGACCAGCCATGCCTCCAAGCCTTGCCCAGAGAGGG', 'position': 30}, 
+                {'snpID': 'rs7014597', 'allele': 'C', 'sequence': 'TGTCAAGGCCACCCTGGGCTTGAAGGGACCCGCCATGCCTCCAAGCCTTGCCCAGAGAGGG', 'position': 30}]
+    print(snp_df)
+
 
     primers = generate_allele_specific_primers(snp_df, 24, 30)
     # for prime_list in primers:
@@ -150,18 +174,26 @@ def Main():
     high = 0
     dimer = 0
     hairpin = 0
+    post_filtered = []
     for allele in primers:
         
         allele_list, fail_ints = filter_one_list_soft(allele, diff = 5.0)
+        post_filtered.append(allele_list)
         low += fail_ints[0]
         high += fail_ints[1]
         dimer += fail_ints[2]
         hairpin += fail_ints[3]
-        # print(allele_list)
+
+    # print(post_filtered)
     print(low)
     print(high)
     print(dimer)
     print(hairpin)
+
+    best_primers, fights = multiplex_list(post_filtered)
+
+    # print(f"best primers : {best_primers}")
+    print(f" fights : {fights}")
 
 if(__name__ == "__main__"):
     Main()
