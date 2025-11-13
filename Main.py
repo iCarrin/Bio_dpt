@@ -138,10 +138,10 @@ def Main():
     # print(snp_df)
 
     primers = generate_allele_specific_primers(snp_df, 24, 30)
-    # for prime_list in primers:
-    #     for primer in prime_list:
-    #         print(primer)
-    #     print()
+    for prime_list in primers:
+        for primer in prime_list:
+            print(primer)
+        print()
     # print(f"number of snps {len(primers)}")
     # print(f"number of directions {len(primers[0])}")
     # print(f"number of primers in a direction {len(primers[0][0])}")
