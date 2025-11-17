@@ -1,7 +1,6 @@
 import primer3
-import random
 from itertools import combinations
-from datetime import datetime 
+
 
 #this is basically a glorified heterodimer filter. Glorified because it has to check all options against all others 
 def multiplex_list(big_list: list[list[dict]], heterodimer_max = 50.0):
@@ -15,7 +14,7 @@ def multiplex_list(big_list: list[list[dict]], heterodimer_max = 50.0):
 
     """
     # time saved for keeping track of improvements
-    start = datetime.now()
+ 
 
     #instead of looping through a list of lists (N^2) we find all combinations. This avoids looking at combinations already tried ((n(n-1))/2)
     allele_combos = combinations(range(len(big_list)),2)
@@ -111,8 +110,8 @@ def multiplex_list(big_list: list[list[dict]], heterodimer_max = 50.0):
     
     out_list = [get_primer(i) for i in range(list_size)]
   
-    end = datetime.now()
-    print(f"multiplexing took : {end - start}")
+
+   
     # multiplexing took : 0:00:05.508837
     return out_list, fighting_alleles
 
