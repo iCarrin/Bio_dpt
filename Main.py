@@ -158,10 +158,10 @@ def Main():
                 {'snpID': 'rs28842593', 'allele': 'C', 'sequence': 'GATATGTTTTGCATATGATACTCCATTGTACAGCAGCAACAGCTAGAACTAAGCTGTTGTA', 'position': 30}, 
                 {'snpID': 'rs7014597', 'allele': 'A', 'sequence': 'TGTCAAGGCCACCCTGGGCTTGAAGGGACCAGCCATGCCTCCAAGCCTTGCCCAGAGAGGG', 'position': 30}, 
                 {'snpID': 'rs7014597', 'allele': 'C', 'sequence': 'TGTCAAGGCCACCCTGGGCTTGAAGGGACCCGCCATGCCTCCAAGCCTTGCCCAGAGAGGG', 'position': 30}]
-    print(snp_df)
+    # print(snp_df)
 
 
-    primers = generate_allele_specific_primers(snp_df, 24, 30)
+    primers = generate_allele_specific_primers(snp_df, 18, 30)
     # for prime_list in primers:
     #     for primer in prime_list:
     #         print(primer)

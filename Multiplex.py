@@ -55,7 +55,7 @@ def multiplex_list(big_list: list[list[dict]], heterodimer_max = 50.0):
     fighting_alleles = []
     for left, right in allele_combos:
         if get_heterodimer(left, right) > heterodimer_max:
-            fighting_alleles.append((left,right))
+            fighting_alleles.append((f"{big_list[left][golden_primers[left]]['snpID']} : {big_list[left][golden_primers[left]]['allele']}", f"{big_list[right][golden_primers[right]]['snpID']} : {big_list[right][golden_primers[right]]['allele']}"))
     
     out_list = []
     for i in range(list_size):
