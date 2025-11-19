@@ -33,13 +33,11 @@ def introduce_mismatch(primer_sequence: str) -> str:
 
 
     # Must only contain A, C, G, T
-
     if not all (re.match("^[ACGT]+$", b) for b in bases):
         print(f"Warning: Invalid characters in primer: {primer_sequence}")
         return primer_sequence
 
     # Must be long enough to have a 3rd-to-last base
-   
     if len(bases) < 3:
         print(f"Warning: Primer too short for mismatch: {primer_sequence}")
         return primer_sequence
@@ -50,7 +48,7 @@ def introduce_mismatch(primer_sequence: str) -> str:
         "G": "T", "T": "G"
     }
 
-  
+
     #base to be changed is third from the last
     base = bases[-3]
     # mismatch the provided base
