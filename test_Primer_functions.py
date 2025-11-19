@@ -5,6 +5,12 @@ import os
 from unittest.mock import patch, MagicMock
 import logging
 
+
+""" 
+These functions were written by AI. Feel free to over write them to stuff that actually makes sense
+"""
+
+
 # Add the directory containing Primer_functions.py to the path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
