@@ -57,9 +57,8 @@ def introduce_mismatch(primer_sequence: str) -> str:
     #rejoin the array as a string inserting commas and spaces
     new_primer_sequence = ", ".join(bases)
 
-    # Replace the base with its mismatch
-    return primer_sequence[:pos] + mismatch + primer_sequence[pos + 1:]
-
+    #return the updated string
+    return new_primer_sequence
 
 def calc_gc_content(sequence: str):
     gc_total = 0
