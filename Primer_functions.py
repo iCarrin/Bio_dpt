@@ -30,19 +30,13 @@ def introduce_mismatch(primer_sequence: str) -> str:
     #convert to array, strip make upper case, split at all commas
     bases = [b.strip().upper() for b in primer_sequence.split(",")]
 
-
     # Must only contain A, C, G, T
-
-
 
     if not all (re.match("^[ACGT]+$", b) for b in bases):
         print(f"Warning: Invalid characters in primer: {primer_sequence}")
         return primer_sequence
 
     # Must be long enough to have a 3rd-to-last base
-
-   
-
     if len(bases) < 3:
         print(f"Warning: Primer too short for mismatch: {primer_sequence}")
         return primer_sequence
