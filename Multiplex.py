@@ -105,12 +105,7 @@ def multiplex_list(big_list: list[list[dict]], heterodimer_max = 50.0):
         fighting_alleles.append((f"{get_primer(left)['snpID']} : {get_primer(left)['allele']}", 
                                 f"{get_primer(right)['snpID']} : {get_primer(right)['allele']}"))
         
- 
-
-    
     out_list = [get_primer(i) for i in range(list_size)]
-  
 
-   
     # multiplexing took : 0:00:05.508837
     return out_list, fighting_alleles

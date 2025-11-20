@@ -1,26 +1,16 @@
 
 import re 
 from Bio.Seq import Seq
-# from Bio.SeqUtils import GC
+from Bio.SeqUtils import GC
 import logging
 from typing import Dict
 import primer3
 from collections.abc import Callable
-# from itertools import filter
 
-# the order is 
-# generate allele specific (and evaluate)
-# generate matching (and evaluate)
-# filter
-# rank
+
 min_len = 18
 max_len = 24
 
-# # Sequence -> Sequence
-# def Reverse_Complement(sequence: str): #  -> str
-    
-#     return str(Seq(sequence).reverse_complement())
-# This function was unnecessary
 
 
 def introduce_mismatch(primer_sequence: str) -> str:
@@ -46,9 +36,10 @@ def introduce_mismatch(primer_sequence: str) -> str:
 
     # Simple mismatch rules (purine↔purine, pyrimidine↔pyrimidine)
     mismatch_rules = {
-        "A": "G", "G": "A",
-        "C": "T", "T": "C"
+        "A": "C", "G": "T",
+        "C": "A", "T": "G"
     }
+
 
     pos = len(primer_sequence) - 3  # Antepenultimate index
     base = primer_sequence[pos]
@@ -289,14 +280,14 @@ def generate_matching_primers(primer_king, snp_json, primer_start = 0, min_dist:
     #get some far primers for primer_king, but only the best (use strict mode). if the filter failes the while loop should try again farther down the line
     #if the ones that pass don't pass the heterodimer then primer_start should be updated and the whole thing tried again.
     while(not passes):
-        # the reverse complement flips the sequence each time so we can iterate over each one the same way and reverse at the end.
+        # the reverse complement flips the sequence each time so we can iterate over each one the same way and flip back later.
         # each one will walk back from the right side 
-        # print(f"small seq {small_sequence}")
+
         far_primer_seq = small_sequence[-(pessamisim+start) : -start-1] # this takes a chunck to feed into a primer generator
-        print(f"after slice : {far_primer_seq}")
+        
         far_primers = make_primers(far_primer_seq, min_len, max_len,  direction, primer_king['allele'])
-        # print(far_primers)
-        try:
+        
+        try:#filter strict mode will throw an error so we use try except
             filt_far = filter_one_list(far_primers, temp, 2, strict_mode=True)
             passes = True
         except ValueError as e:
