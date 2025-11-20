@@ -121,8 +121,8 @@ def filter_little(filter_name: str, old_list: list[dict], filter_function):
 def filter_one_list_soft(allele_list: list[dict],
                          desired_tm: float = 60.0,
                          diff: float = 3.0,
-                         homodimer_goal: float = 3.0,
-                         hairpin_goal: float = 3.0) -> (list[dict], list[int]):
+                         homodimer_goal: float = -3.0,
+                         hairpin_goal: float = -3.0) -> (list[dict], list[int]):
     
     """
     Soft filter a single candidate list such as the stage1_filter behavior
@@ -149,9 +149,9 @@ def filter_one_list_soft(allele_list: list[dict],
     # tm < max
     allele_phtm, htm_fail_count = filter_little("tm Max", allele_pltm, lambda x : x["tm"] <= (desired_tm + diff))
     # min < homodimer < max
-    allele_phomo, homo_fail_count = filter_little("homodimer", allele_phtm, lambda x : ( x["homodimer_dg"] > homodimer_goal*-1000))
+    allele_phomo, homo_fail_count = filter_little("homodimer", allele_phtm, lambda x : ( x["homodimer_dg"] > homodimer_goal* 1000))
     #min < hairpin < max
-    allele_phair, hair_fail_count = filter_little("hairpin", allele_phomo, lambda x : ( x["hairpin_dg"] > hairpin_goal*-1000))
+    allele_phair, hair_fail_count = filter_little("hairpin", allele_phomo, lambda x : ( x["hairpin_dg"] > hairpin_goal* 1000))
     
     # total_fails = [f"low temp fails: {ltm_fail_count}", f"high temp fails: {htm_fail_count}", f"homodimer fails: {homo_fail_count}", f"hairpin fails: {hair_fail_count}"]
     # print(total_fails)
