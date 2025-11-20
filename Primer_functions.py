@@ -34,7 +34,7 @@ def introduce_mismatch(primer_sequence: str) -> str:
         print(f"Warning: Primer too short for mismatch: {primer_sequence}")
         return primer_sequence
 
-    # Simple mismatch rules (purine↔purine, pyrimidine↔pyrimidine)
+    # Simple mismatch rules (purine↔pyrimidine, purine↔pyrimidine)
     mismatch_rules = {
         "A": "C", "G": "T",
         "C": "A", "T": "G"
