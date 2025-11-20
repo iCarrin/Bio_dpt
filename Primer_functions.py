@@ -91,6 +91,9 @@ def rank_primers(primers: list[dict], target_tm = 62.5, target_gc = 50, optimism
 def filter_little(filter_name: str, old_list: list[dict], filter_function):
     # fail_count is only 0 or 1, but we'll add it to a total to see what's bugging out
     fail_count = 0
+    # if filter_name == "tm Max":
+    #     for primer in old_list:
+    #         print(primer["tm"])
     #the new list off of a filter of the passed in list. The filter will pick any allele that worked
     new_list = list(filter(filter_function, old_list))
     #if after the filter we don't have anything left
@@ -98,7 +101,17 @@ def filter_little(filter_name: str, old_list: list[dict], filter_function):
         #just use the old list
         new_list = old_list
         #print a statement for debugging purposes
-        print(f"{old_list[0]["snpID"]}: {filter_name} filter failed; using previous list.")
+        print(f"{old_list[0]["snpID"]}: {filter_name} failed; using previous list.")
+        
+        # if filter_name == "tm Max":
+        #     for primer in old_list:
+        #         print(primer["tm"])
+        # if filter_name == "homodimer":
+        #     for primer in old_list:
+        #         print(primer3.bindings.calc_homodimer(primer["primer_sequence"]))
+        # if filter_name == "hairpin":
+        #     for primer in old_list:
+        #         print(primer3.bindings.calc_hairpin(primer["primer_sequence"]))
         #the fail count goes up
         fail_count = 1
     #return the list that hopefully was able to filter and weather or not it failed
@@ -108,8 +121,8 @@ def filter_little(filter_name: str, old_list: list[dict], filter_function):
 def filter_one_list_soft(allele_list: list[dict],
                          desired_tm: float = 60.0,
                          diff: float = 3.0,
-                         homodimer_goal: float = 3.0,
-                         hairpin_goal: float = 3.0) -> (list[dict], list[int]):
+                         homodimer_goal: float = -3.0,
+                         hairpin_goal: float = -3.0) -> (list[dict], list[int]):
     
     """
     Soft filter a single candidate list such as the stage1_filter behavior
@@ -132,12 +145,13 @@ def filter_one_list_soft(allele_list: list[dict],
     
     # tm > min
     allele_pltm, ltm_fail_count = filter_little("tm Min", allele_list, lambda x : x["tm"] >= (desired_tm - diff))
+    
     # tm < max
     allele_phtm, htm_fail_count = filter_little("tm Max", allele_pltm, lambda x : x["tm"] <= (desired_tm + diff))
     # min < homodimer < max
-    allele_phomo, homo_fail_count = filter_little("homodimer", allele_phtm, lambda x : (homodimer_goal*-1) < x["homodimer_dg"] < homodimer_goal)
+    allele_phomo, homo_fail_count = filter_little("homodimer", allele_phtm, lambda x : ( x["homodimer_dg"] > homodimer_goal* 1000))
     #min < hairpin < max
-    allele_phair, hair_fail_count = filter_little("hairpin", allele_phomo, lambda x : (hairpin_goal*-1) < x["hairpin_dg"] < hairpin_goal)
+    allele_phair, hair_fail_count = filter_little("hairpin", allele_phomo, lambda x : ( x["hairpin_dg"] > hairpin_goal* 1000))
     
     # total_fails = [f"low temp fails: {ltm_fail_count}", f"high temp fails: {htm_fail_count}", f"homodimer fails: {homo_fail_count}", f"hairpin fails: {hair_fail_count}"]
     # print(total_fails)
