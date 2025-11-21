@@ -1,10 +1,10 @@
-
+import pandas as pd
 import re 
 from Bio.Seq import Seq
-# from Bio.SeqUtils import GC
 import logging
 from typing import Dict
 import primer3
+import re
 import re
 from collections.abc import Callable
 # from itertools import filter
@@ -30,13 +30,17 @@ def introduce_mismatch(primer_sequence: str) -> str:
 
     #convert to array, strip make upper case, split at all commas
     bases = [b.strip().upper() for b in primer_sequence.split(",")]
+    #convert to array, strip make upper case, split at all commas
+    bases = [b.strip().upper() for b in primer_sequence.split(",")]
 
     # Must only contain A, C, G, T
+    if not all (re.match("^[ACGT]+$", b) for b in bases):
     if not all (re.match("^[ACGT]+$", b) for b in bases):
         print(f"Warning: Invalid characters in primer: {primer_sequence}")
         return primer_sequence
 
     # Must be long enough to have a 3rd-to-last base
+    if len(bases) < 3:
     if len(bases) < 3:
         print(f"Warning: Primer too short for mismatch: {primer_sequence}")
         return primer_sequence
@@ -45,13 +49,22 @@ def introduce_mismatch(primer_sequence: str) -> str:
     mismatch_rules = {
         "C": "A", "A": "C",
         "G": "T", "T": "G"
+        "C": "A", "A": "C",
+        "G": "T", "T": "G"
     }
 
     #base to be changed is third from the last
     base = bases[-3]
     # mismatch the provided base
+    #base to be changed is third from the last
+    base = bases[-3]
+    # mismatch the provided base
     mismatch = mismatch_rules.get(base)
 
+    # establish the 3rd from the last base as the mismatched version
+    bases[-3] = mismatch
+    #rejoin the array as a string inserting commas and spaces
+    new_primer_sequence = ", ".join(bases)
     # establish the 3rd from the last base as the mismatched version
     bases[-3] = mismatch
     #rejoin the array as a string inserting commas and spaces
@@ -67,6 +80,47 @@ def calc_gc_content(sequence: str):
             gc_total += 1
     return gc_total/len(sequence)
 
+def evaluate_primers(primer_dict: dict) -> Dict:
+    """
+        Evaluate primer quality using primer3-py.
+        TODO: Enhance error handling.
+        - Handle primer3-py failures gracefully.
+        - Add logging for failed evaluations.
+        """
+
+    # Setup logging
+    logging.basicConfig(
+        # print('in set up logic')
+        filename="primer_evaluation.log",
+        level=logging.INFO,
+        # print('logging info')
+        format="%(asctime)s - %(levelname)s - %(message)s"
+    )
+
+
+    try:
+
+        # Use primer3's analysis functions instead of design_primers
+        tm_result = primer3.bindings.calc_tm(primer_dict['primer_sequence'])
+        gc_content = calc_gc_content(primer_dict['primer_sequence'])
+        hairpin = primer3.bindings.calc_hairpin(primer_dict['primer_sequence'])
+        homodimer = primer3.bindings.calc_homodimer(primer_dict['primer_sequence'])
+
+        primer_dict["tm"] = tm_result
+        primer_dict["gc_content"] = gc_content
+        primer_dict["hairpin_dg"] = hairpin.dg 
+        primer_dict["homodimer_dg"] = homodimer.dg 
+        primer_dict["success"] = True
+        return primer_dict
+    except Exception as e:
+        logging.error(f"Primer evaluation failed for sequence: {primer_dict['primer_sequence']}\nError: {str(e)}")
+        primer_dict["tm"] = 0
+        primer_dict["gc_content"] = 0
+        primer_dict["hairpin_dg"] = 999
+        primer_dict["homodimer_dg"] = 999
+        primer_dict["success"] = False
+        print(f"I have failed, please forgive my sins ({primer_dict['snpID']}, {primer_dict['allele']}, {primer_dict['direction']})")   
+        return primer_dict
 
 def rank_primers(primers: list[dict], target_tm = 62.5, target_gc = 50, optimism = 5) -> list[dict]:
     """
@@ -159,6 +213,7 @@ def filter_one_list_soft(allele_list: list[dict],
     return (allele_phair, total_fails_ints)
 
 
+
 def generate_allele_specific_primers(snps_list: list[dict], min_len: int = 18, max_len: int = 28) -> list[list[list[dict]]]:
     # make primers makes a dictionary for every length of one direction of an allele for a SNP.
     # those dictionaries are stored in a list, so a list for forward and a list for backward
@@ -200,50 +255,26 @@ def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> 
     primers = []
     if seq_length >= min_len:
         for length in range(max_len-min_len):#possible bug if the forward mismatch is smaller than the minimum length
-
-            trimmed = seq[length:]
-            #take this part out of the loop, so we can have one dictionary that says the SNP ID and ALLELE and Direction, 
-            #and then a list in that dictionary of sequence and lengths. Storing the name over and over seems redundant IDK
-            primers.append({
+            
+            primary_primer= {
                 "snpID": snp_id,
                 "allele": allele,
                 "primer_sequence": seq[length:], #this is the trimmed length
                 "direction": direction,
-                "length": seq_length-length,
-                "tm" : primer3.bindings.calc_tm(trimmed),
-                "gc_content" : calc_gc_content(trimmed),
-                "hairpin_dg" : primer3.bindings.calc_hairpin(trimmed).dg,
-                "homodimer_dg" : primer3.bindings.calc_homodimer(trimmed).dg
-
-            })
-            
-
+                "length": seq_length-length 
+            }
+            primers.append(evaluate_primers(primary_primer))#Evaluate primers was built to handle one dictionary at a time. Adding it here saves time by avoiding an extra loop. 
+            #maybe avoid calling the function all together by passing evaluate_primers directly into make_primers
     else:
         print(f"The length of your forward primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {seq_length}")
     return primers
 
 
 
-
-def Generate_Matching_Primers(snp_data, allele_specific_primers, min_dist: int = 800, max_dist: int = 1200): 
+def generate_matching_primers(snp_data: pd.DataFrame, allele_specific_primers: pd.DataFrame, min_dist: int = 100, max_dist: int = 500): # -> pd.DataFrame::
     """
-        Generate matching primers for top  allele-specific primers.
+        Generate matching primers for top 5 allele-specific primers.
         TODO: Optimize primer pairing.
         - Use primer3-py's designPrimers for more efficient pairing.
         - Add checks for primer pair compatibility (e.g., Tm difference < 5Â°C).
-
-        in R it's "extract_substrings_far"
-
-        now what we want to do it go 800-1200 bp out and find a primer that passes the filter. 
-        we don't need mismatch, and there's rules about the far primer temp and stuff. Check the video on slack becuase I forgot (I'll pin it)
-
-        the old func found every and then filtered. We don't need to do that, just find one that passes the filter (far specific) and plays nice with all other close primers
-        (the virtue of passing the filter would mean it plays nice with all others, except for heterodimers. You'll have to call the heterodimer function from primer3py
-        and check every it with every close primer. Think about ways to make it faster/do it however you can to make it work and we can brain storm how to make it faster if we need)
-        (faster ideas like remembering what doesn't work, checking close primers against the far primer whole string instead of section of far primer string against all close primers)
-        
-        Focus on filtering the far primers for now. Checking them against all others is really a multiplexing problem.
-        good luck, no problem if this is a multi week problem
         """
-    pass
-
