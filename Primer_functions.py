@@ -1,10 +1,7 @@
-import pandas as pd
-import re 
 from Bio.Seq import Seq
 import logging
 from typing import Dict
 import primer3
-import re
 import re
 from collections.abc import Callable
 # from itertools import filter
@@ -30,17 +27,16 @@ def introduce_mismatch(primer_sequence: str) -> str:
 
     #convert to array, strip make upper case, split at all commas
     bases = [b.strip().upper() for b in primer_sequence.split(",")]
-    #convert to array, strip make upper case, split at all commas
-    bases = [b.strip().upper() for b in primer_sequence.split(",")]
+
 
     # Must only contain A, C, G, T
-    if not all (re.match("^[ACGT]+$", b) for b in bases):
+
     if not all (re.match("^[ACGT]+$", b) for b in bases):
         print(f"Warning: Invalid characters in primer: {primer_sequence}")
         return primer_sequence
 
     # Must be long enough to have a 3rd-to-last base
-    if len(bases) < 3:
+   
     if len(bases) < 3:
         print(f"Warning: Primer too short for mismatch: {primer_sequence}")
         return primer_sequence
@@ -49,22 +45,15 @@ def introduce_mismatch(primer_sequence: str) -> str:
     mismatch_rules = {
         "C": "A", "A": "C",
         "G": "T", "T": "G"
-        "C": "A", "A": "C",
-        "G": "T", "T": "G"
     }
 
-    #base to be changed is third from the last
-    base = bases[-3]
-    # mismatch the provided base
+  
     #base to be changed is third from the last
     base = bases[-3]
     # mismatch the provided base
     mismatch = mismatch_rules.get(base)
 
-    # establish the 3rd from the last base as the mismatched version
-    bases[-3] = mismatch
-    #rejoin the array as a string inserting commas and spaces
-    new_primer_sequence = ", ".join(bases)
+
     # establish the 3rd from the last base as the mismatched version
     bases[-3] = mismatch
     #rejoin the array as a string inserting commas and spaces
