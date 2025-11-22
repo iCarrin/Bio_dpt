@@ -45,13 +45,13 @@ def Fetch_SNP_Data(rsids: List[str], flank_length: int = 800) -> list[dict]:
 
             # Extract allele string like "A/G" or "C/T"
             allele_str = mapping.get("allele_string", "")
-            ancestral = mapping.get("ancestral_allele")
+            # ancestral = mapping.get("ancestral_allele")
 
             #Isaiah change: I dropped any ancestral Alleles that we knew were normal
             #In the future we should pull the list, split it, and have the user pick which ones they want.
             alleles = allele_str.split("/") if allele_str else []
-            if ancestral in ['A', 'C', 'G', 'T']:
-                alleles.remove(ancestral)
+            # if ancestral in ['A', 'C', 'G', 'T']:
+            #     alleles.remove(ancestral)
 
 
             # Ensure there are at least two alleles to work with
@@ -106,7 +106,7 @@ def Fetch_SNP_Data(rsids: List[str], flank_length: int = 800) -> list[dict]:
     return snp_data
 
 
-
+from datetime import datetime 
 
 def Main():
     """
@@ -118,50 +118,55 @@ def Main():
         - Validate output with biological experts.
         - Benchmark performance for large SNP sets.
         """
-    
+    start = datetime.now()
 
     # snp_df = Fetch_SNP_Data(["rs1799971", "rs12184297", "rs116801199", "rs12565286", "rs2977670", "rs28454925", "rs116587930", "rs116720794", "rs4951859",\
     #                           "rs148120343", "rs529266287", "rs79643588", "rs17396518", "rs983166", "rs28842593", "rs7014597", "rs599839"], 30)# just here for testing.  
+    snp_df = Fetch_SNP_Data(["rs1799971", "rs12184297", "rs116801199", "rs12565286", "rs2977670", "rs28454925"], 1500)# just here for testing.  
+
+    snp_end = datetime.now()
+    
+
+    # snp_df = [  {'snpID': 'rs1799971', 'allele': 'G', 'sequence': 'TCCTGGGTCAACTTGTCCCACTTAGATGGCGACCTGTCCGACCCATGCGGTCCGAACCGCA', 'position': 30}, 
+    #             {'snpID': 'rs12184297', 'allele': 'T', 'sequence': 'CTTTAAACCTCAACACATTATCAAGCATAATACTGTATATAATAAGTACTCAATACTGAAT', 'position': 30}, 
+    #             {'snpID': 'rs116801199', 'allele': 'G', 'sequence': 'TAAAAAATGAATCTAATAATGAGGAAACATGAGAAAAAACCAAACTGAGGGATATTCTACA', 'position': 30}, 
+    #             {'snpID': 'rs116801199', 'allele': 'T', 'sequence': 'TAAAAAATGAATCTAATAATGAGGAAACATTAGAAAAAACCAAACTGAGGGATATTCTACA', 'position': 30}, 
+    #             {'snpID': 'rs12565286', 'allele': 'G', 'sequence': 'GGAAGCATCCTTCACTATCTTCTACCAAGGGCTTCCTCCTTTGGTGCTTCAAAATTTTTTA', 'position': 30}, 
+    #             {'snpID': 'rs12565286', 'allele': 'C', 'sequence': 'GGAAGCATCCTTCACTATCTTCTACCAAGGCCTTCCTCCTTTGGTGCTTCAAAATTTTTTA', 'position': 30}, 
+    #             {'snpID': 'rs2977670', 'allele': 'G', 'sequence': 'AACCTTGGAGGACCTATTGCTTAAGGTGTGGGCCAAAGAAAGTAAGTTAGGGCAAGAGACT', 'position': 30}, 
+    #             {'snpID': 'rs2977670', 'allele': 'A', 'sequence': 'AACCTTGGAGGACCTATTGCTTAAGGTGTGAGCCAAAGAAAGTAAGTTAGGGCAAGAGACT', 'position': 30}, 
+    #             {'snpID': 'rs2977670', 'allele': 'C', 'sequence': 'AACCTTGGAGGACCTATTGCTTAAGGTGTGCGCCAAAGAAAGTAAGTTAGGGCAAGAGACT', 'position': 30}, 
+    #             {'snpID': 'rs2977670', 'allele': 'T', 'sequence': 'AACCTTGGAGGACCTATTGCTTAAGGTGTGTGCCAAAGAAAGTAAGTTAGGGCAAGAGACT', 'position': 30}, 
+    #             {'snpID': 'rs28454925', 'allele': 'C', 'sequence': 'GGATTCGAATGGAAAGACATGGAATGGACTCGATTGGAATGGGTTGGGATGGAATGATCTA', 'position': 30}, 
+    #             {'snpID': 'rs28454925', 'allele': 'G', 'sequence': 'GGATTCGAATGGAAAGACATGGAATGGACTGGATTGGAATGGGTTGGGATGGAATGATCTA', 'position': 30}, 
+    #             {'snpID': 'rs28454925', 'allele': 'T', 'sequence': 'GGATTCGAATGGAAAGACATGGAATGGACTTGATTGGAATGGGTTGGGATGGAATGATCTA', 'position': 30}, 
+    #             {'snpID': 'rs116587930', 'allele': 'G', 'sequence': 'ATTTTCAACTTTTGTAAATCTCTGTTTTAGGTGGGCTTCTTACGTACAACTTGGAGTTGGG', 'position': 30}, 
+    #             {'snpID': 'rs116587930', 'allele': 'A', 'sequence': 'ATTTTCAACTTTTGTAAATCTCTGTTTTAGATGGGCTTCTTACGTACAACTTGGAGTTGGG', 'position': 30}, 
+    #             {'snpID': 'rs116720794', 'allele': 'C', 'sequence': 'CTCTAACAGGCATTTCAGAGTGAGGTGGGACGTTCTAGGGCACCTGTTTTGCAGATGCCCT', 'position': 30}, 
+    #             {'snpID': 'rs116720794', 'allele': 'T', 'sequence': 'CTCTAACAGGCATTTCAGAGTGAGGTGGGATGTTCTAGGGCACCTGTTTTGCAGATGCCCT', 'position': 30}, 
+    #             {'snpID': 'rs4951859', 'allele': 'C', 'sequence': 'TTTGCAGATGCCCTCAGGGTGGGGGAAGGGCAGCTTCCAGCCTTCCCAGTTCCAGCACTCT', 'position': 30}, 
+    #             {'snpID': 'rs4951859', 'allele': 'G', 'sequence': 'TTTGCAGATGCCCTCAGGGTGGGGGAAGGGGAGCTTCCAGCCTTCCCAGTTCCAGCACTCT', 'position': 30}, 
+    #             {'snpID': 'rs4951859', 'allele': 'T', 'sequence': 'TTTGCAGATGCCCTCAGGGTGGGGGAAGGGTAGCTTCCAGCCTTCCCAGTTCCAGCACTCT', 'position': 30}, 
+    #             {'snpID': 'rs148120343', 'allele': 'T', 'sequence': 'TCCCTTCCTTCCAATTCTCCTTCCAGCCTTTCTTGATTTCCAGAATGAGAAATCATTAAGT', 'position': 30}, 
+    #             {'snpID': 'rs148120343', 'allele': 'C', 'sequence': 'TCCCTTCCTTCCAATTCTCCTTCCAGCCTTCCTTGATTTCCAGAATGAGAAATCATTAAGT', 'position': 30}, 
+    #             {'snpID': 'rs529266287', 'allele': 'TA', 'sequence': 'AGAGAAAGTCCAGTCAATTTTATATAAGTTTAAAAAAAAGATGTGAAACCTATTTTCAGAAT', 'position': 30}, 
+    #             {'snpID': 'rs79643588', 'allele': 'A', 'sequence': 'CATGGTCTAGGGAAGGAGAATGAAACATCAAAAATAACTGCAATTCCCCACAGTACGTGTC', 'position': 30}, 
+    #             {'snpID': 'rs17396518', 'allele': 'T', 'sequence': 'GCAAAAATTTACAGAGAAGGAAATAGAGCTTCTCCCAAAATGTTAATAAAATTCTTAAAGG', 'position': 30}, 
+    #             {'snpID': 'rs17396518', 'allele': 'A', 'sequence': 'GCAAAAATTTACAGAGAAGGAAATAGAGCTACTCCCAAAATGTTAATAAAATTCTTAAAGG', 'position': 30}, 
+    #             {'snpID': 'rs17396518', 'allele': 'C', 'sequence': 'GCAAAAATTTACAGAGAAGGAAATAGAGCTCCTCCCAAAATGTTAATAAAATTCTTAAAGG', 'position': 30}, 
+    #             {'snpID': 'rs983166', 'allele': 'C', 'sequence': 'GGCTAATATAATACTTATGGAACACTACCACTGTGCCAGATACTACTGATAAATGTTATAT', 'position': 30}, 
+    #             {'snpID': 'rs983166', 'allele': 'G', 'sequence': 'GGCTAATATAATACTTATGGAACACTACCAGTGTGCCAGATACTACTGATAAATGTTATAT', 'position': 30}, 
+    #             {'snpID': 'rs983166', 'allele': 'T', 'sequence': 'GGCTAATATAATACTTATGGAACACTACCATTGTGCCAGATACTACTGATAAATGTTATAT', 'position': 30}, 
+    #             {'snpID': 'rs28842593', 'allele': 'A', 'sequence': 'GATATGTTTTGCATATGATACTCCATTGTAAAGCAGCAACAGCTAGAACTAAGCTGTTGTA', 'position': 30}, 
+    #             {'snpID': 'rs28842593', 'allele': 'C', 'sequence': 'GATATGTTTTGCATATGATACTCCATTGTACAGCAGCAACAGCTAGAACTAAGCTGTTGTA', 'position': 30}, 
+    #             {'snpID': 'rs7014597', 'allele': 'A', 'sequence': 'TGTCAAGGCCACCCTGGGCTTGAAGGGACCAGCCATGCCTCCAAGCCTTGCCCAGAGAGGG', 'position': 30}, 
+    #             {'snpID': 'rs7014597', 'allele': 'C', 'sequence': 'TGTCAAGGCCACCCTGGGCTTGAAGGGACCCGCCATGCCTCCAAGCCTTGCCCAGAGAGGG', 'position': 30}]
+    # print(snp_df)
 
 
-    snp_df = [  {'snpID': 'rs1799971', 'allele': 'G', 'sequence': 'TCCTGGGTCAACTTGTCCCACTTAGATGGCGACCTGTCCGACCCATGCGGTCCGAACCGCA', 'position': 30}, 
-                {'snpID': 'rs12184297', 'allele': 'T', 'sequence': 'CTTTAAACCTCAACACATTATCAAGCATAATACTGTATATAATAAGTACTCAATACTGAAT', 'position': 30}, 
-                {'snpID': 'rs116801199', 'allele': 'G', 'sequence': 'TAAAAAATGAATCTAATAATGAGGAAACATGAGAAAAAACCAAACTGAGGGATATTCTACA', 'position': 30}, 
-                {'snpID': 'rs116801199', 'allele': 'T', 'sequence': 'TAAAAAATGAATCTAATAATGAGGAAACATTAGAAAAAACCAAACTGAGGGATATTCTACA', 'position': 30}, 
-                {'snpID': 'rs12565286', 'allele': 'G', 'sequence': 'GGAAGCATCCTTCACTATCTTCTACCAAGGGCTTCCTCCTTTGGTGCTTCAAAATTTTTTA', 'position': 30}, 
-                {'snpID': 'rs12565286', 'allele': 'C', 'sequence': 'GGAAGCATCCTTCACTATCTTCTACCAAGGCCTTCCTCCTTTGGTGCTTCAAAATTTTTTA', 'position': 30}, 
-                {'snpID': 'rs2977670', 'allele': 'G', 'sequence': 'AACCTTGGAGGACCTATTGCTTAAGGTGTGGGCCAAAGAAAGTAAGTTAGGGCAAGAGACT', 'position': 30}, 
-                {'snpID': 'rs2977670', 'allele': 'A', 'sequence': 'AACCTTGGAGGACCTATTGCTTAAGGTGTGAGCCAAAGAAAGTAAGTTAGGGCAAGAGACT', 'position': 30}, 
-                {'snpID': 'rs2977670', 'allele': 'C', 'sequence': 'AACCTTGGAGGACCTATTGCTTAAGGTGTGCGCCAAAGAAAGTAAGTTAGGGCAAGAGACT', 'position': 30}, 
-                {'snpID': 'rs2977670', 'allele': 'T', 'sequence': 'AACCTTGGAGGACCTATTGCTTAAGGTGTGTGCCAAAGAAAGTAAGTTAGGGCAAGAGACT', 'position': 30}, 
-                {'snpID': 'rs28454925', 'allele': 'C', 'sequence': 'GGATTCGAATGGAAAGACATGGAATGGACTCGATTGGAATGGGTTGGGATGGAATGATCTA', 'position': 30}, 
-                {'snpID': 'rs28454925', 'allele': 'G', 'sequence': 'GGATTCGAATGGAAAGACATGGAATGGACTGGATTGGAATGGGTTGGGATGGAATGATCTA', 'position': 30}, 
-                {'snpID': 'rs28454925', 'allele': 'T', 'sequence': 'GGATTCGAATGGAAAGACATGGAATGGACTTGATTGGAATGGGTTGGGATGGAATGATCTA', 'position': 30}, 
-                {'snpID': 'rs116587930', 'allele': 'G', 'sequence': 'ATTTTCAACTTTTGTAAATCTCTGTTTTAGGTGGGCTTCTTACGTACAACTTGGAGTTGGG', 'position': 30}, 
-                {'snpID': 'rs116587930', 'allele': 'A', 'sequence': 'ATTTTCAACTTTTGTAAATCTCTGTTTTAGATGGGCTTCTTACGTACAACTTGGAGTTGGG', 'position': 30}, 
-                {'snpID': 'rs116720794', 'allele': 'C', 'sequence': 'CTCTAACAGGCATTTCAGAGTGAGGTGGGACGTTCTAGGGCACCTGTTTTGCAGATGCCCT', 'position': 30}, 
-                {'snpID': 'rs116720794', 'allele': 'T', 'sequence': 'CTCTAACAGGCATTTCAGAGTGAGGTGGGATGTTCTAGGGCACCTGTTTTGCAGATGCCCT', 'position': 30}, 
-                {'snpID': 'rs4951859', 'allele': 'C', 'sequence': 'TTTGCAGATGCCCTCAGGGTGGGGGAAGGGCAGCTTCCAGCCTTCCCAGTTCCAGCACTCT', 'position': 30}, 
-                {'snpID': 'rs4951859', 'allele': 'G', 'sequence': 'TTTGCAGATGCCCTCAGGGTGGGGGAAGGGGAGCTTCCAGCCTTCCCAGTTCCAGCACTCT', 'position': 30}, 
-                {'snpID': 'rs4951859', 'allele': 'T', 'sequence': 'TTTGCAGATGCCCTCAGGGTGGGGGAAGGGTAGCTTCCAGCCTTCCCAGTTCCAGCACTCT', 'position': 30}, 
-                {'snpID': 'rs148120343', 'allele': 'T', 'sequence': 'TCCCTTCCTTCCAATTCTCCTTCCAGCCTTTCTTGATTTCCAGAATGAGAAATCATTAAGT', 'position': 30}, 
-                {'snpID': 'rs148120343', 'allele': 'C', 'sequence': 'TCCCTTCCTTCCAATTCTCCTTCCAGCCTTCCTTGATTTCCAGAATGAGAAATCATTAAGT', 'position': 30}, 
-                {'snpID': 'rs529266287', 'allele': 'TA', 'sequence': 'AGAGAAAGTCCAGTCAATTTTATATAAGTTTAAAAAAAAGATGTGAAACCTATTTTCAGAAT', 'position': 30}, 
-                {'snpID': 'rs79643588', 'allele': 'A', 'sequence': 'CATGGTCTAGGGAAGGAGAATGAAACATCAAAAATAACTGCAATTCCCCACAGTACGTGTC', 'position': 30}, 
-                {'snpID': 'rs17396518', 'allele': 'T', 'sequence': 'GCAAAAATTTACAGAGAAGGAAATAGAGCTTCTCCCAAAATGTTAATAAAATTCTTAAAGG', 'position': 30}, 
-                {'snpID': 'rs17396518', 'allele': 'A', 'sequence': 'GCAAAAATTTACAGAGAAGGAAATAGAGCTACTCCCAAAATGTTAATAAAATTCTTAAAGG', 'position': 30}, 
-                {'snpID': 'rs17396518', 'allele': 'C', 'sequence': 'GCAAAAATTTACAGAGAAGGAAATAGAGCTCCTCCCAAAATGTTAATAAAATTCTTAAAGG', 'position': 30}, 
-                {'snpID': 'rs983166', 'allele': 'C', 'sequence': 'GGCTAATATAATACTTATGGAACACTACCACTGTGCCAGATACTACTGATAAATGTTATAT', 'position': 30}, 
-                {'snpID': 'rs983166', 'allele': 'G', 'sequence': 'GGCTAATATAATACTTATGGAACACTACCAGTGTGCCAGATACTACTGATAAATGTTATAT', 'position': 30}, 
-                {'snpID': 'rs983166', 'allele': 'T', 'sequence': 'GGCTAATATAATACTTATGGAACACTACCATTGTGCCAGATACTACTGATAAATGTTATAT', 'position': 30}, 
-                {'snpID': 'rs28842593', 'allele': 'A', 'sequence': 'GATATGTTTTGCATATGATACTCCATTGTAAAGCAGCAACAGCTAGAACTAAGCTGTTGTA', 'position': 30}, 
-                {'snpID': 'rs28842593', 'allele': 'C', 'sequence': 'GATATGTTTTGCATATGATACTCCATTGTACAGCAGCAACAGCTAGAACTAAGCTGTTGTA', 'position': 30}, 
-                {'snpID': 'rs7014597', 'allele': 'A', 'sequence': 'TGTCAAGGCCACCCTGGGCTTGAAGGGACCAGCCATGCCTCCAAGCCTTGCCCAGAGAGGG', 'position': 30}, 
-                {'snpID': 'rs7014597', 'allele': 'C', 'sequence': 'TGTCAAGGCCACCCTGGGCTTGAAGGGACCCGCCATGCCTCCAAGCCTTGCCCAGAGAGGG', 'position': 30}]
-    print(snp_df)
+    primers = generate_allele_specific_primers(snp_df, 18, 30)
+    primer_close_end = datetime.now()
 
-
-    primers = generate_allele_specific_primers(snp_df, 24, 30)
     # for prime_list in primers:
     #     for primer in prime_list:
     #         print(primer)
@@ -175,6 +180,7 @@ def Main():
     dimer = 0
     hairpin = 0
     post_filtered = []
+    
     for allele in primers:
         
         allele_list, fail_ints = filter_one_list_soft(allele, diff = 5.0)
@@ -189,11 +195,19 @@ def Main():
     print(high)
     print(dimer)
     print(hairpin)
+    filter_end = datetime.now()
 
     best_primers, fights = multiplex_list(post_filtered)
-
     # print(f"best primers : {best_primers}")
-    print(f" fights : {fights}")
+    # print(f" fights : {fights}")
+    multi_end = datetime.now()
+    end = datetime.now()
+    
+    print(f"fetch_snp took : {snp_end - start}")
+    print(f"generate_allele_specific_primer took : {primer_close_end - snp_end}")
+    print(f"filter_primers took : {filter_end - primer_close_end}")
+    print(f"multiplexing close took : {multi_end - filter_end}")
+    print(f"total time : {end-start}")
 
 if(__name__ == "__main__"):
     Main()
