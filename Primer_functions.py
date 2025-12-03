@@ -291,4 +291,4 @@ def generate_matching_primers(primer_king, snp_json, primer_start = 0, min_dist:
                 raise Exception("you've tried every possible primer. What have you done??")
         
     
-    return filt_far
+    return filt_far, start
