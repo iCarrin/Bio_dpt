@@ -33,14 +33,14 @@ def multiplex_list(big_list: list[list[dict]], heterodimer_max = 50.0):
         that comes from referencing a dict in a list in a list
         """
         if primer_index is None:
-            primer_index = allele_index
-        return big_list[allele_index][golden_primers[primer_index]]
+            primer_index = golden_primers[allele_index]
+        return big_list[allele_index][primer_index]
          
         
 
     def get_heterodimer(left, right, leftPrimer = None):
         """
-        This fucntion was made to cut down on the noise that comes from calling the primer calc_heterodimer function
+        This function was made to cut down on the noise that comes from calling the primer calc_heterodimer function
         """
         return primer3.calc_heterodimer(get_primer(left, leftPrimer)['primer_sequence'], get_primer(right)['primer_sequence']).dg
 
@@ -105,12 +105,7 @@ def multiplex_list(big_list: list[list[dict]], heterodimer_max = 50.0):
         fighting_alleles.append((f"{get_primer(left)['snpID']} : {get_primer(left)['allele']}", 
                                 f"{get_primer(right)['snpID']} : {get_primer(right)['allele']}"))
         
- 
-
-    
     out_list = [get_primer(i) for i in range(list_size)]
-  
 
-   
     # multiplexing took : 0:00:05.508837
     return out_list, fighting_alleles
