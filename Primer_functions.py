@@ -1,11 +1,11 @@
 
 import re 
 from Bio.Seq import Seq
-from Bio.SeqUtils import GC
-import logging
-from typing import Dict
+
+
+
 import primer3
-from collections.abc import Callable
+
 
 
 min_len = 18
@@ -83,10 +83,6 @@ def rank_primers(primers: list[dict], target_tm = 62.5, target_gc = 50, optimism
 def filter_little(filter_name: str, old_list: list[dict], filter_function, strict):
     # fail_count is only 0 or 1, but we'll add it to a total to see what's bugging out
     fail_count = 0
-    # if filter_name == "tm Max":
-    #     for primer in old_list:
-    #         print(primer["tm"])
-    #the new list off of a filter of the passed in list. The filter will pick any allele that worked
     new_list = list(filter(filter_function, old_list))
     #if after the filter we don't have anything left
     if not new_list and not strict:
@@ -95,15 +91,6 @@ def filter_little(filter_name: str, old_list: list[dict], filter_function, stric
         #print a statement for debugging purposes
         print(f"{old_list[0]["snpID"]}: {filter_name} failed; using previous list.")
         
-        # if filter_name == "tm Max":
-        #     for primer in old_list:
-        #         print(primer["tm"])
-        # if filter_name == "homodimer":
-        #     for primer in old_list:
-        #         print(primer3.bindings.calc_homodimer(primer["primer_sequence"]))
-        # if filter_name == "hairpin":
-        #     for primer in old_list:
-        #         print(primer3.bindings.calc_hairpin(primer["primer_sequence"]))
         #the fail count goes up
         fail_count = 1
     elif not new_list and strict:
@@ -150,7 +137,7 @@ def filter_one_list(allele_list: list[dict],
     allele_phair, hair_fail_count = filter_little("hairpin", allele_phomo, lambda x : ( x["hairpin_dg"] > hairpin_goal* 1000), strict_mode)
     
     # total_fails = [f"low temp fails: {ltm_fail_count}", f"high temp fails: {htm_fail_count}", f"homodimer fails: {homo_fail_count}", f"hairpin fails: {hair_fail_count}"]
-    # print(total_fails)
+  
     total_fails_ints = [ltm_fail_count, htm_fail_count, homo_fail_count, hair_fail_count]
     
     return (allele_phair, total_fails_ints)
@@ -194,11 +181,13 @@ def generate_allele_specific_primers(snps_list: list[dict], min_len: int = 18, m
 
 def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> list[dict]: 
     seq_length = len(seq)
+    
     primers = []
     if seq_length >= min_len:
         for length in range(max_len-min_len):#possible bug if the forward mismatch is smaller than the minimum length
 
-            trimmed = seq[length:]
+            trimmed = seq[length:]#this is assuming that the seq given is already the maximum length. 
+            # If given a crazy long string it will start at "length" and give the rest of the string
             #take this part out of the loop, so we can have one dictionary that says the SNP ID and ALLELE and Direction, 
             #and then a list in that dictionary of sequence and lengths. Storing the name over and over seems redundant IDK
             primers.append({
@@ -243,57 +232,62 @@ def generate_matching_primers(primer_king, snp_json, primer_start = 0, min_dist:
     #snp_json primer (should clean this up in the future)
         # {'snpID': 'rs1799971', 'allele': 'G', 'sequence': 'TCCTGGGTCAACTTGTCCCACTTAGATGGCGACCTGTCCGACCCATGCGGTCCGAACCGCA', 'position': 30}
 
-    #get the json snp
+    if len(snp_json[0]['sequence']) < (min_dist+17)/2:
+        raise Exception("your sequence is so short it won't allow for even 1 primer to be maid. " \
+        "Lower your min distance to have the API call for a longer string")
     snp_dict = {}
     for snp in snp_json:
-        if  snp['snpID'] == primer_king['snpID'] and snp['allele'] == primer_king['allele']:       
+        if  snp['snpID'] == primer_king['snpID']: # we only search for a matching SNP because we aren't even using the allele section    
             snp_dict = snp
-    
+            break
+        else:
+            raise Exception("there is no matching entry in the Json list")
+   
     
     middle = snp_dict['position']
+    whole_sequence = snp_dict['sequence']
     direction = primer_king['direction']
-    small_sequence = ""
+    far_sequence = ""
     temp = primer_king['tm']
 
     #get the far sequence and reverse complement is if necessary
     if direction == "forward":
-        seq_pre_rev_comp = snp_dict['sequence'][middle+min_dist:middle+max_dist+1]#everything from snp (middle) plus start dist cutting off at max if necessary (end is exclusive so +1)
-        small_sequence = str(Seq(seq_pre_rev_comp).reverse_complement()) #change to sequence object, reverse complement it, and change it back
+        seq_pre_rev_comp = whole_sequence[middle+min_dist:middle+max_dist]#everything from snp (middle) plus start dist cutting off at max if necessary (end is exclusive so +1)
+        far_sequence = str(Seq(seq_pre_rev_comp).reverse_complement()) #change to sequence object, reverse complement it, and change it back
         #                                         _______  
         #                      _________          \______\_
         #  What we're given _/__________|           \_______\ what we make 
         #_________________/_____________|=====================("===" means reverse complement DNA)
         
     elif direction == "reverse":
-        small_sequence = snp_dict['sequence'][middle-max_dist:middle+1-min_dist]
+        far_sequence = whole_sequence[middle-max_dist:middle-min_dist-1]
         #___________________________
         #     ___/______/           ====================== ("===" means reverse complement DNA)
         #    /_______/ What makin'  |_____________/ what we have (reverse close)
         #                           |___________/     
     else:
-        print("no dirrection given. How did we get here?")
+        raise Exception("no direction given. How did we get here?")
     
     passes = False
     start = primer_start
-    pessamisim = 35 #the amount of primers generated at one time. A lot means you don't have faith things will be found
-    
+
     #get some far primers for primer_king, but only the best (use strict mode). if the filter failes the while loop should try again farther down the line
     #if the ones that pass don't pass the heterodimer then primer_start should be updated and the whole thing tried again.
     while(not passes):
         # the reverse complement flips the sequence each time so we can iterate over each one the same way and flip back later.
         # each one will walk back from the right side 
 
-        far_primer_seq = small_sequence[-(pessamisim+start) : -start-1] # this takes a chunck to feed into a primer generator
+        trial_snip = far_sequence[-(max_len+start) : -start or None] # this takes a chunk to feed into a primer generator
         
-        far_primers = make_primers(far_primer_seq, min_len, max_len,  direction, primer_king['allele'])
-        
+        far_primers = make_primers(trial_snip, min_len, max_len, primer_king['snpID'], primer_king['allele'], direction)
+      
         try:#filter strict mode will throw an error so we use try except
-            filt_far = filter_one_list(far_primers, temp, 2, strict_mode=True)
+            filt_far, _ = filter_one_list(far_primers, temp, 2, strict_mode=True)
             passes = True
         except ValueError as e:
-            print("didn't pass strict mode")
-            start += pessamisim
-            if start > max_dist:
+            print(e)
+            start += 3 #this length might not be the best here, but we need some kind of step though
+            if start > max_dist-max_len:
                 raise Exception("you've tried every possible primer. What have you done??")
         
     

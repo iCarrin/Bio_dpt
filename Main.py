@@ -1,8 +1,6 @@
-# from Multiplex import *
 from Output import *
 from Primer_functions import *
 from Multiplex import *
-import primer3
 import re # run 'pip install regex' if not already installed
 import time # to handle rate limiting
 import requests
@@ -200,7 +198,7 @@ def Main():
     filter_end = datetime.now()
 
     best_primers, fights = multiplex_list(post_filtered)
-    # print(f"best primers : {best_primers}")
+    # print(f"best primers : {best_primers[0]}")
     # print(f" fights : {fights}")
     multi_end = datetime.now()
 
@@ -222,3 +220,6 @@ def Main():
 if(__name__ == "__main__"):
     Main()
 
+# ([{'snpID': 'rs28454925', 'allele': 'C', 'primer_sequence': 'AAATGGAATGGAATGGAACTGACTCGAATGG', 'direction': 'reverse', 'length': 31, 'tm': 65.61663325780347, 'gc_content': 0.41935483870967744, 'hairpin_dg': 0.0, 'homodimer_dg': -2539.883686764744}, 
+#   {'snpID': 'rs28454925', 'allele': 'C', 'primer_sequence': 'AATGGAATGGAATGGAACTGACTCGAATGG', 'direction': 'reverse', 'length': 30, 'tm': 65.39266809239052, 'gc_content': 0.43333333333333335, 'hairpin_dg': 0.0, 'homodimer_dg': -2539.883686764744}], 
+#  [0, 0, 0, 0])
