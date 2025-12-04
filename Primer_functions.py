@@ -271,6 +271,7 @@ def generate_matching_primers(primer_king, snp_json, primer_start = 0, min_dist:
     passes = False
     start = primer_start
 
+
     #get some far primers for primer_king, but only the best (use strict mode). if the filter failes the while loop should try again farther down the line
     #if the ones that pass don't pass the heterodimer then primer_start should be updated and the whole thing tried again.
     while(not passes):
@@ -292,3 +293,4 @@ def generate_matching_primers(primer_king, snp_json, primer_start = 0, min_dist:
         
     
     return filt_far, start
+

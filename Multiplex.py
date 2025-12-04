@@ -109,3 +109,7 @@ def multiplex_list(big_list: list[list[dict]], heterodimer_max = 50.0):
 
     # multiplexing took : 0:00:05.508837
     return out_list, fighting_alleles
+
+
+def multiplex_far (Generate_Matching_Primers, get_heterodimer):
+        # compare each heterodimer, if that primer plays well with other primers then save. Try new one if it doesn't works.
