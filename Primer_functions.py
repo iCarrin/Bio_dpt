@@ -113,7 +113,7 @@ def filter_one_list(allele_list: list[dict],
                          diff: float = 3.0,
                          homodimer_goal: float = -3.0,
                          hairpin_goal: float = -3.0,
-                         strict_mode = True) -> (list[dict], list[int]):
+                         strict_mode = False) -> (list[dict], list[int]):
     
     """
     Soft filter a single candidate list such as the stage1_filter behavior
