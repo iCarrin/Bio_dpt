@@ -140,9 +140,9 @@ def filter_one_list(allele_list: list[dict],
     # tm < max
     allele_phtm, htm_fail_count = filter_little("tm Max", allele_pltm, lambda x : x["tm"] <= (desired_tm + diff), strict_mode)
     # min < homodimer < max
-    allele_phomo, homo_fail_count = filter_little("homodimer", allele_phtm, lambda x : ( x["homodimer_dg"] > homodimer_goal* 1000), strict_mode)
+    allele_phomo, homo_fail_count = filter_little("homodimer", allele_phtm, lambda x : ( x["homodimer_dg"].dg > homodimer_goal* 1000 or x["homodimer_dg"].tm < 40), strict_mode)
     #min < hairpin < max
-    allele_phair, hair_fail_count = filter_little("hairpin", allele_phomo, lambda x : ( x["hairpin_dg"] > hairpin_goal* 1000), strict_mode)
+    allele_phair, hair_fail_count = filter_little("hairpin", allele_phomo, lambda x : ( x["hairpin_dg"].dg > hairpin_goal* 1000 or x["homodimer_dg"].tm < 40), strict_mode)
     
     # total_fails = [f"low temp fails: {ltm_fail_count}", f"high temp fails: {htm_fail_count}", f"homodimer fails: {homo_fail_count}", f"hairpin fails: {hair_fail_count}"]
   
@@ -151,7 +151,7 @@ def filter_one_list(allele_list: list[dict],
     return (allele_phair, total_fails_ints)
 
 
-def generate_allele_specific_primers(snps_list: list[dict], min_len: int = 18, max_len: int = 28) -> list[list[list[dict]]]:
+def generate_allele_specific_primers(snps_list: list[dict], min_len: int = 18, max_len: int = 28, fallback=False) -> list[list[dict]]:
     # make primers makes a dictionary for every length of one direction of an allele for a SNP.
     # those dictionaries are stored in a list, so a list for forward and a list for backward
     # those lists are stored in another list, one for each SNP. 
@@ -166,23 +166,24 @@ def generate_allele_specific_primers(snps_list: list[dict], min_len: int = 18, m
     all_primers = []
     min_len -= 2 #don't know why but 2 and 1 have to be removed from the inputs to get the desired lengths
     max_len -= 1
+    def make_allele_list():
+            forward = sequence[snp_pos - max_len :snp_pos+1]#this gets the largest segment.   
+            forward_mismatch = introduce_mismatch(forward, fallback)
+        
+            reverse = str(Seq(sequence[snp_pos:snp_pos+max_len+1]).reverse_complement()) #creates a Biopython sequence, gets the reverse complement, and converts is back to a string
+            reverse_mismatch = introduce_mismatch(reverse, fallback)
 
+            return (make_primers(forward_mismatch, min_len, max_len, snp_id, allele))\
+                    + (make_primers(reverse_mismatch, min_len, max_len, snp_id, allele, "reverse"))# this make one list of 
     for snp_dict in snps_list:
         #why pass this in seperately when it's already in the dict?
         snp_id = snp_dict["snpID"]
         allele = snp_dict["allele"]
         sequence = snp_dict["sequence"]
         snp_pos = snp_dict["position"]
-
-        forward = sequence[snp_pos - max_len :snp_pos+1]#this gets the largest segment.   
-        forward_mismatch = introduce_mismatch(forward)
+        allele_primers = make_allele_list()
     
-        reverse = str(Seq(sequence[snp_pos:snp_pos+max_len+1]).reverse_complement()) #creates a Biopython sequence, gets the reverse complement, and converts is back to a string
-        reverse_mismatch = introduce_mismatch(reverse)
-
-        this_allele_primers = (make_primers(forward_mismatch, min_len, max_len, snp_id, allele))\
-                            + (make_primers(reverse_mismatch, min_len, max_len, snp_id, allele, "reverse"))# this make one list of dictionaries for both flanking directions
-        all_primers.append(this_allele_primers) #this adds this list to the larger list
+        all_primers.append(allele_primers) #this adds this list to the larger list
     return all_primers # this will return a list of lists of dictionaries. Each allele is a list. 
 #[[snp1 allele1 dictionaries],[snp1 allele2 dictionaries],[snp2 allele2 dictionaries],[snp2 allele2 dictionaries]] each snp and allele are on the same level.
    
@@ -206,8 +207,8 @@ def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> 
                 "length": seq_length-length,
                 "tm" : primer3.bindings.calc_tm(trimmed),
                 "gc_content" : calc_gc_content(trimmed),
-                "hairpin_dg" : primer3.bindings.calc_hairpin(trimmed).dg,
-                "homodimer_dg" : primer3.bindings.calc_homodimer(trimmed).dg
+                "hairpin_dg" : primer3.bindings.calc_hairpin(trimmed),
+                "homodimer_dg" : primer3.bindings.calc_homodimer(trimmed)
 
             })
             

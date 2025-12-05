@@ -181,20 +181,20 @@ def Main():
     hairpin = 0
     post_filtered = []
     
-    for allele in primers:
+    # for allele in primers:
         
-        allele_list, fail_ints = filter_one_list(allele, diff = 5.0)
-        post_filtered.append(allele_list)
-        low += fail_ints[0]
-        high += fail_ints[1]
-        dimer += fail_ints[2]
-        hairpin += fail_ints[3]
+    #     allele_list, fail_ints = filter_one_list(allele, diff = 5.0)
+    #     post_filtered.append(allele_list)
+        # low += fail_ints[0]
+        # high += fail_ints[1]
+        # dimer += fail_ints[2]
+        # hairpin += fail_ints[3]
 
     # print(post_filtered)
-    print(low)
-    print(high)
-    print(dimer)
-    print(hairpin)
+    # print(low)
+    # print(high)
+    # print(dimer)
+    # print(hairpin)
     filter_end = datetime.now()
 
     # best_primers, fights = multiplex_list(post_filtered)
