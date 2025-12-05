@@ -13,7 +13,7 @@ max_len = 24
 
 
 
-def introduce_mismatch(primer_sequence: str) -> str:
+def introduce_mismatch(primer_sequence: str, fall_back=False) -> str:
     """
     Introduces a base mismatch at the antepenultimate position (3rd from last).
     """
@@ -34,11 +34,19 @@ def introduce_mismatch(primer_sequence: str) -> str:
         print(f"Warning: Primer too short for mismatch: {primer_sequence}")
         return primer_sequence
 
-    # Simple mismatch rules (purine↔pyrimidine, purine↔pyrimidine)
-    mismatch_rules = {
-        "A": "C", "G": "T",
-        "C": "A", "T": "G"
-    }
+
+    if fall_back:
+        mismatch_rules = {
+            #technically A->T is a strong mismatch but it was too much work to implement two A options 
+            #in the strong rule set and none in the medium, so it sits in the medium rule set
+            "A": "T", "G": "C",
+            "C": "A", "T": "A"
+        }
+    else:# Simple mismatch rules (purine↔pyrimidine, purine↔pyrimidine)
+        mismatch_rules = {
+            "A": "C", "G": "T",
+            "C": "A", "T": "G"
+        }
 
 
     pos = len(primer_sequence) - 3  # Antepenultimate index
@@ -105,7 +113,7 @@ def filter_one_list(allele_list: list[dict],
                          diff: float = 3.0,
                          homodimer_goal: float = -3.0,
                          hairpin_goal: float = -3.0,
-                         strict_mode = False) -> (list[dict], list[int]):
+                         strict_mode = True) -> (list[dict], list[int]):
     
     """
     Soft filter a single candidate list such as the stage1_filter behavior
