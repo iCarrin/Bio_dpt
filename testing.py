@@ -4,7 +4,7 @@ import re
 # import numpy as np
 # import prc_lib as plib
 # # snp = 'ATGCAATTGGCCAAATTTGGGCCCAAAATTTTGGGGCCCCAAAAATTTTTGGGGGCCCCCAAAAAATTTTTTGGGGGGCCCCCC'
-print(primer3.bindings.calc_hairpin('AAAATAACTTCAATTCTAAACAGTACGTGTC'))
+print(primer3.bindings.calc_hairpin('AAAATAACTTCAATTCTACACAGTACGTGTC'))
 
 # snp = 'ABCDEFGHIJKLmNOPQRSTUVWXYZ'
 # pessimism = 5
