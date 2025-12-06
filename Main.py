@@ -9,7 +9,7 @@ from typing import List # for type hinting
 # Ensembl REST API base URL
 ENSEMBL_REST = "https://rest.ensembl.org"
 
-def Fetch_SNP_Data(rsids: List[str], flank_length: int = 800) -> list[dict]:
+def Fetch_SNP_Data(rsids: List[str], flank_length: int = 800, use_all = False) -> list[dict]:
     """
     Retrieves SNP data from the Ensembl API, including flanking sequences and alleles.
 
@@ -47,12 +47,36 @@ def Fetch_SNP_Data(rsids: List[str], flank_length: int = 800) -> list[dict]:
 
             #Isaiah change: I dropped any ancestral Alleles that we knew were normal
             #In the future we should pull the list, split it, and have the user pick which ones they want.
-            alleles = allele_str.split("/") if allele_str else []
+            raw_alleles = allele_str.split("/") if allele_str else []
        
 
+            def ask_user(use_all = False):
+                if use_all:
+                    alleles_wanted = "ALL"
+                else:
+                    for i, allele in enumerate(raw_alleles):
+                        print(f"{i+1}) {allele}")
+                    alleles_wanted = input("type the corresponding numbers for the alleles you want separated by spaces, or just \"All\" for all of them")
+
+                if alleles_wanted.strip().upper() == "ALL" or alleles_wanted.strip().upper() == "":
+                    print("using all alleles")
+                    return raw_alleles
+                elif re.fullmatch(r'[0-9\s]+', alleles_wanted):
+                    indices = [int(x) for x in alleles_wanted.strip().split(" ")]
+
+                    if max(indices) > len(raw_alleles) or min(indices) < 1:
+                        print("you asked for an allele that wasn't in the list")
+                        return ask_user()
+                    else:
+                        return [raw_alleles[i-1] for i in indices]
+                else:
+                    print("you typed more than just numbers and spaces. Try again")
+                    return ask_user()
+                
+            wanted_alleles = ask_user()
 
             # Ensure there are at least two alleles to work with
-            if len(alleles) < 1:
+            if len(wanted_alleles) < 1:
                 print(f"Warning: Less than 2 alleles for {rsid}. Skipping.")
                 continue
 
@@ -69,9 +93,12 @@ def Fetch_SNP_Data(rsids: List[str], flank_length: int = 800) -> list[dict]:
 
             # Position of the SNP relative to the start of the fetched sequence
             rel_pos = flank_length if seq_start > 1 else pos #should just be flanking length
+            
+
+
 
             # Step 3: Replace the SNP base with each possible allele to simulate variation
-            for allele in alleles:
+            for allele in wanted_alleles:
                 # Validate that allele contains valid DNA characters only
                 if not re.fullmatch("[ACGTNacgtn]+", allele):
                     print(f"Skipping non-standard allele '{allele}' for {rsid}")
@@ -216,19 +243,20 @@ def Main():
     #             {'snpID': 'rs28842593', 'allele': 'C', 'sequence': 'GATATGTTTTGCATATGATACTCCATTGTACAGCAGCAACAGCTAGAACTAAGCTGTTGTA', 'position': 30}, 
     #             {'snpID': 'rs7014597', 'allele': 'A', 'sequence': 'TGTCAAGGCCACCCTGGGCTTGAAGGGACCAGCCATGCCTCCAAGCCTTGCCCAGAGAGGG', 'position': 30}, 
     #             {'snpID': 'rs7014597', 'allele': 'C', 'sequence': 'TGTCAAGGCCACCCTGGGCTTGAAGGGACCCGCCATGCCTCCAAGCCTTGCCCAGAGAGGG', 'position': 30}] 
-    snp_df = Fetch_SNP_Data(['rs1044922', 'rs6664536', 'rs367950410'], 1500)
+    snp_df = Fetch_SNP_Data(['rs1044922', 'rs6664536', 'rs367950410'], 30)
+    # print(snp_df)
     snp_end = datetime.now()
 
-    primers = generate_allele_specific_primers(snp_df, 18, 24)
+    # primers = generate_allele_specific_primers(snp_df, 18, 24)
     primer_close_end = datetime.now()
 
-    filt = filter_all_list(primers)
+    # filt = filter_all_list(primers)
     filter_end = datetime.now()
 
-    best_primers, fights = multiplex_list(filt)
+    # best_primers, fights = multiplex_list(filt)
     multi_end = datetime.now()
 
-    far = generate_matching_primers(best_primers[0], snp_df) 
+    # far = generate_matching_primers(best_primers[0], snp_df) 
     far_end = datetime.now()
 
     end = datetime.now()
