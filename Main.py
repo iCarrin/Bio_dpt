@@ -73,7 +73,7 @@ def Fetch_SNP_Data(rsids: List[str], flank_length: int = 800, use_all = False) -
                     print("you typed more than just numbers and spaces. Try again")
                     return ask_user()
                 
-            wanted_alleles = ask_user()
+            wanted_alleles = ask_user(use_all)
 
             # Ensure there are at least two alleles to work with
             if len(wanted_alleles) < 1:
@@ -128,10 +128,10 @@ def Fetch_SNP_Data(rsids: List[str], flank_length: int = 800, use_all = False) -
   
 
     return snp_data
-
+# ran 5 test of 63 snps. 1 snp call takes 12.7 seconds
 
 from datetime import datetime 
-
+ 
 def Main():
     """
         Main function to generate, filter, rank, pair, and export primers.
@@ -144,15 +144,15 @@ def Main():
         """
     start = datetime.now()
 
-    # snp_df = Fetch_SNP_Data([
-    #                         "rs1799971", "rs12184297", "rs116801199", "rs12565286", "rs2977670", "rs28454925", "rs116587930", "rs116720794", "rs4951859",\
-    #                         "rs148120343", "rs529266287", "rs79643588", "rs17396518", "rs983166", "rs28842593", "rs7014597", "rs599839", "rs28428499",\
-    #                         "rs756427959", "rs1045833", "rs28503599", "rs531646671", "rs541940975", "rs62635297", "rs6682375", "rs6682385", "rs11807796",\
-    #                         "rs11580262", "rs201026389", "rs11489794", "rs113141985", "rs62636498", "rs148220436", "rs141130360", "rs199745162", "rs544798311",\
-    #                         "rs199740902", "rs201535981", "rs372841554", "rs201057270", "rs369546232", "rs373030326", "rs746313125", "rs768288163", "rs13302934",\
-    #                         "rs773821537", "rs371996741", "rs4099234", "rs62028215", "rs62637791", "rs62637793", "rs200677948", "rs796517829", "rs62637813",\
-    #                         "rs2691277", "rs3091274", "rs10399749", "rs3107975", "rs28396308", "rs13343114", "rs6658003", "rs201418760", "rs199609147",\
-    #                         "rs2691334", "rs2691335", "rs75024357", "rs2531261", "rs76735897", "rs77573425", "rs3844233", "rs62639101", "rs62639102",\
+    snp_df = Fetch_SNP_Data([
+                            "rs1799971", "rs12184297", "rs116801199", "rs12565286", "rs2977670", "rs28454925", "rs116587930", "rs116720794", "rs4951859",\
+                            "rs148120343", "rs529266287", "rs79643588", "rs17396518", "rs983166", "rs28842593", "rs7014597", "rs599839", "rs28428499",\
+                            "rs756427959", "rs1045833", "rs28503599", "rs531646671", "rs541940975", "rs62635297", "rs6682375", "rs6682385", "rs11807796",\
+                            "rs11580262", "rs201026389", "rs11489794", "rs113141985", "rs62636498", "rs148220436", "rs141130360", "rs199745162", "rs544798311",\
+                            "rs199740902", "rs201535981", "rs372841554", "rs201057270", "rs369546232", "rs373030326", "rs746313125", "rs768288163", "rs13302934",\
+                            "rs773821537", "rs371996741", "rs4099234", "rs62028215", "rs62637791", "rs62637793", "rs200677948", "rs796517829", "rs62637813",\
+                            "rs2691277", "rs3091274", "rs10399749", "rs3107975", "rs28396308", "rs13343114", "rs6658003", "rs201418760", "rs199609147",\
+                            "rs2691334", "rs2691335", "rs75024357", "rs2531261", "rs76735897", "rs77573425", "rs3844233", "rs62639101", "rs62639102"], 1500, True)
     #                         "rs111440589", "rs574185548", "rs567315672", "rs771510052", "rs749441654", "rs12402780", "rs13328683", "rs201488854" , "rs3964475",\
     #                         "rs200715572", "rs200113991", "rs201609557", "rs796405068", "rs376621245", "rs78627600", "rs201323924", "rs368526587", "rs12409693",\
     #                         "rs62642104", "rs62642105", "rs375749629", "rs374391784", "rs200298631", "rs373871696", "rs62642109", "rs796779951", "rs3115860",\
@@ -243,20 +243,24 @@ def Main():
     #             {'snpID': 'rs28842593', 'allele': 'C', 'sequence': 'GATATGTTTTGCATATGATACTCCATTGTACAGCAGCAACAGCTAGAACTAAGCTGTTGTA', 'position': 30}, 
     #             {'snpID': 'rs7014597', 'allele': 'A', 'sequence': 'TGTCAAGGCCACCCTGGGCTTGAAGGGACCAGCCATGCCTCCAAGCCTTGCCCAGAGAGGG', 'position': 30}, 
     #             {'snpID': 'rs7014597', 'allele': 'C', 'sequence': 'TGTCAAGGCCACCCTGGGCTTGAAGGGACCCGCCATGCCTCCAAGCCTTGCCCAGAGAGGG', 'position': 30}] 
-    snp_df = Fetch_SNP_Data(['rs1044922', 'rs6664536', 'rs367950410'], 30)
+    # snp_df = Fetch_SNP_Data(['rs1044922', 'rs6664536', 'rs367950410'], 30)
     # print(snp_df)
     snp_end = datetime.now()
 
-    # primers = generate_allele_specific_primers(snp_df, 18, 24)
+    primers = generate_allele_specific_primers(snp_df, 18, 24)
     primer_close_end = datetime.now()
 
-    # filt = filter_all_list(primers)
+    filt = filter_all_list(primers)
     filter_end = datetime.now()
 
-    # best_primers, fights = multiplex_list(filt)
+    best_primers, fights = multiplex_list(filt)
+    print("fights")
+    print(fights)
     multi_end = datetime.now()
 
-    # far = generate_matching_primers(best_primers[0], snp_df) 
+    far = generate_matching_primers(best_primers[0], snp_df) 
+    # print("far")
+    # print(far)
     far_end = datetime.now()
 
     end = datetime.now()
@@ -270,3 +274,4 @@ def Main():
 
 if(__name__ == "__main__"):
     Main()
+
