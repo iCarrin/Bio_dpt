@@ -4,25 +4,26 @@ import re
 # import numpy as np
 # import prc_lib as plib
 # # snp = 'ATGCAATTGGCCAAATTTGGGCCCAAAATTTTGGGGCCCCAAAAATTTTTGGGGGCCCCCAAAAAATTTTTTGGGGGGCCCCCC'
+print(primer3.bindings.calc_hairpin('AAAATAACTTCAATTCTACACAGTACGTGTC'))
 
-snp = 'ABCDEFGHIJKLmNOPQRSTUVWXYZ'
-pessimism = 5
-start = 0
-middle = 13
-max_dist = 12
-min_dist = 2
-# for i in range (3):
-#     for length in range(10):
-# trimmed = snp[middle+min_dist:middle+max_dist]
-# print(trimmed)
-# start += 1
-# print("try again")
-    # print(length)
-myString = "Cot"
+# snp = 'ABCDEFGHIJKLmNOPQRSTUVWXYZ'
+# pessimism = 5
+# start = 0
+# middle = 13
+# max_dist = 12
+# min_dist = 2
+# # for i in range (3):
+# #     for length in range(10):
+# # trimmed = snp[middle+min_dist:middle+max_dist]
+# # print(trimmed)
+# # start += 1
+# # print("try again")
+#     # print(length)
+# myString = "Cot"
 
-print (myString)
-myString = myString[:1] + "A" + myString[2:]
-print (myString)
+# print (myString)
+# myString = myString[:1] + "A" + myString[2:]
+# print (myString)
 
 # snp_data = [{'snpID': 'rs1799971', 'allele': 'A', 'sequence': 'TCCTGGGTCAACTTGTCCCACTTAGATGGCAACCTGTCCGACCCATGCGGTCCGAACCGCA', 'position': 30}, 
 #             {'snpID': 'rs1799971', 'allele': 'G', 'sequence': 'TCCTGGGTCAACTTGTCCCACTTAGATGGCGACCTGTCCGACCCATGCGGTCCGAACCGCA', 'position': 30}, 

@@ -1,19 +1,9 @@
 
 import re 
 from Bio.Seq import Seq
-
-
-
 import primer3
 
-
-
-min_len = 18
-max_len = 24
-
-
-
-def introduce_mismatch(primer_sequence: str) -> str:
+def introduce_mismatch(primer_sequence: str, fall_back=False) -> str:
     """
     Introduces a base mismatch at the antepenultimate position (3rd from last).
     """
@@ -34,11 +24,19 @@ def introduce_mismatch(primer_sequence: str) -> str:
         print(f"Warning: Primer too short for mismatch: {primer_sequence}")
         return primer_sequence
 
-    # Simple mismatch rules (purine↔pyrimidine, purine↔pyrimidine)
-    mismatch_rules = {
-        "A": "C", "G": "T",
-        "C": "A", "T": "G"
-    }
+
+    if fall_back:
+        mismatch_rules = {#medium rule set
+            #technically A->T is a strong mismatch but it was too much work to implement two A options 
+            #in the strong rule set and none in the medium, so it sits in the medium rule set
+            "A": "T", "G": "C",
+            "C": "A", "T": "A"
+        }
+    else:# Simple mismatch rules (purine↔pyrimidine, purine↔pyrimidine)
+        mismatch_rules = { #strong rule set
+            "A": "C", "G": "T",
+            "C": "A", "T": "G"
+        }
 
 
     pos = len(primer_sequence) - 3  # Antepenultimate index
@@ -71,12 +69,10 @@ def rank_primers(primers: list[dict], target_tm = 62.5, target_gc = 50, optimism
     for primer in primers:
         primer["tm_score"] = abs(primer["tm"] - target_tm)
         primer["gc_score"] = abs(primer["gc_content"] - target_gc)
-        primer["score"] = primer["tm_score"] + primer["hairpin_dg"] + primer["homodimer_dg"] + primer["gc_score"] 
-
+        primer["score"] = primer["tm_score"] + primer["hairpin"] + primer["homomdimer"] + primer["gc_score"] 
 
     primers.sort(key=lambda x: x["score"])
 
-    
     return primers[:optimism]
 
 
@@ -132,9 +128,9 @@ def filter_one_list(allele_list: list[dict],
     # tm < max
     allele_phtm, htm_fail_count = filter_little("tm Max", allele_pltm, lambda x : x["tm"] <= (desired_tm + diff), strict_mode)
     # min < homodimer < max
-    allele_phomo, homo_fail_count = filter_little("homodimer", allele_phtm, lambda x : ( x["homodimer_dg"] > homodimer_goal* 1000), strict_mode)
+    allele_phomo, homo_fail_count = filter_little("homodimer", allele_phtm, lambda x : ( x["homomdimer"].dg > homodimer_goal* 1000 or x["homomdimer"].tm < 40), strict_mode)
     #min < hairpin < max
-    allele_phair, hair_fail_count = filter_little("hairpin", allele_phomo, lambda x : ( x["hairpin_dg"] > hairpin_goal* 1000), strict_mode)
+    allele_phair, hair_fail_count = filter_little("hairpin", allele_phomo, lambda x : ( x["hairpin"].dg > hairpin_goal* 1000 or x["homomdimer"].tm < 40), strict_mode)
     
     # total_fails = [f"low temp fails: {ltm_fail_count}", f"high temp fails: {htm_fail_count}", f"homodimer fails: {homo_fail_count}", f"hairpin fails: {hair_fail_count}"]
   
@@ -142,8 +138,19 @@ def filter_one_list(allele_list: list[dict],
     
     return (allele_phair, total_fails_ints)
 
-
-def generate_allele_specific_primers(snps_list: list[dict], min_len: int = 18, max_len: int = 28) -> list[list[list[dict]]]:
+def filter_all_list(all_snp_primers, desired_tm: float = 60.0, diff: float = 3.0, homodimer_goal: float = -3.0, hairpin_goal: float = -3.0, strict_mode = False) -> (list[dict], list[int]):
+    filt_all_primers = []
+    total_fails = [0, 0, 0, 0]
+    for allele_primer in all_snp_primers:
+        good_primers, fails = filter_one_list(allele_primer, desired_tm, diff, homodimer_goal, hairpin_goal, strict_mode)
+        filt_all_primers.append(good_primers)
+        total_fails[0] += fails[0]
+        total_fails[1] += fails[1]
+        total_fails[2] += fails[2]
+        total_fails[3] += fails[3]
+    print(total_fails)
+    return filt_all_primers
+def generate_allele_specific_primers(snps_list: list[dict], min_len: int = 18, max_len: int = 24, fallback=False) -> list[list[dict]]:
     # make primers makes a dictionary for every length of one direction of an allele for a SNP.
     # those dictionaries are stored in a list, so a list for forward and a list for backward
     # those lists are stored in another list, one for each SNP. 
@@ -158,25 +165,26 @@ def generate_allele_specific_primers(snps_list: list[dict], min_len: int = 18, m
     all_primers = []
     min_len -= 2 #don't know why but 2 and 1 have to be removed from the inputs to get the desired lengths
     max_len -= 1
+    def make_allele_list():
+            forward = sequence[snp_pos - max_len :snp_pos+1]#this gets the largest segment.   
+            forward_mismatch = introduce_mismatch(forward, fallback)
+        
+            reverse = str(Seq(sequence[snp_pos:snp_pos+max_len+1]).reverse_complement()) #creates a Biopython sequence, gets the reverse complement, and converts is back to a string
+            reverse_mismatch = introduce_mismatch(reverse, fallback)
 
+            return (make_primers(forward_mismatch, min_len, max_len, snp_id, allele))\
+                    + (make_primers(reverse_mismatch, min_len, max_len, snp_id, allele, "reverse"))# this make one list of 
     for snp_dict in snps_list:
         #why pass this in seperately when it's already in the dict?
         snp_id = snp_dict["snpID"]
         allele = snp_dict["allele"]
         sequence = snp_dict["sequence"]
         snp_pos = snp_dict["position"]
-
-        forward = sequence[snp_pos - max_len :snp_pos+1]#this gets the largest segment.   
-        forward_mismatch = introduce_mismatch(forward)
+        allele_primers = make_allele_list()
     
-        reverse = str(Seq(sequence[snp_pos:snp_pos+max_len+1]).reverse_complement()) #creates a Biopython sequence, gets the reverse complement, and converts is back to a string
-        reverse_mismatch = introduce_mismatch(reverse)
-
-        this_allele_primers = (make_primers(forward_mismatch, min_len, max_len, snp_id, allele))\
-                            + (make_primers(reverse_mismatch, min_len, max_len, snp_id, allele, "reverse"))# this make one list of dictionaries for both flanking directions
-        all_primers.append(this_allele_primers) #this adds this list to the larger list
+        all_primers.append(allele_primers) #this adds this list to the larger list
     return all_primers # this will return a list of lists of dictionaries. Each allele is a list. 
-#[[snp1 allele1 dictionaries],[snp1 allele2 dictionaries],[snp2 allele2 dictionaries],[snp2 allele2 dictionaries]] each snp and allele are on the same level.
+
    
 
 def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> list[dict]: 
@@ -198,12 +206,9 @@ def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> 
                 "length": seq_length-length,
                 "tm" : primer3.bindings.calc_tm(trimmed),
                 "gc_content" : calc_gc_content(trimmed),
-                "hairpin_dg" : primer3.bindings.calc_hairpin(trimmed).dg,
-                "homodimer_dg" : primer3.bindings.calc_homodimer(trimmed).dg
-
+                "hairpin" : primer3.bindings.calc_hairpin(trimmed),
+                "homomdimer" : primer3.bindings.calc_homodimer(trimmed)
             })
-            
-
     else:
         print(f"The length of your forward primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {seq_length}")
     return primers
@@ -211,26 +216,13 @@ def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> 
 
 
 
-def generate_matching_primers(primer_king, snp_json, primer_start = 0, min_dist: int = 800, max_dist: int = 1200): 
+def generate_matching_primers(primer_king, snp_json, primer_start = 0, min_len = 18, max_len = 24, min_dist: int = 800, max_dist: int = 1200): 
     """
         Generate matching primers for top  allele-specific primers.
         TODO: Optimize primer pairing.
         - Use primer3-py's designPrimers for more efficient pairing.
         - Add checks for primer pair compatibility (e.g., Tm difference < 5Â°C).
     """
-    #primer_king (the close primer we're making a far one for)
-        # {'snpID': 'rs1799971', 
-        # 'allele': 'G', 
-        # 'primer_sequence': 'GTCAACTTGTCCCACTTAGATGACG', 
-        # 'direction': 'forward', 
-        # 'length': 25, 
-        # 'tm': 61.58199577952456, 
-        # 'gc_content': 0.48, 
-        # 'hairpin_dg': 490.5883553889871, 
-        # 'homodimer_dg': -2664.0111446110095}
-
-    #snp_json primer (should clean this up in the future)
-        # {'snpID': 'rs1799971', 'allele': 'G', 'sequence': 'TCCTGGGTCAACTTGTCCCACTTAGATGGCGACCTGTCCGACCCATGCGGTCCGAACCGCA', 'position': 30}
 
     if len(snp_json[0]['sequence']) < (min_dist+17)/2:
         raise Exception("your sequence is so short it won't allow for even 1 primer to be maid. " \
