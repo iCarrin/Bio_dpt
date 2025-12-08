@@ -2,7 +2,9 @@
 import re 
 from Bio.Seq import Seq
 import primer3
+import logging
 
+logger = logging.getLogger(__name__)
 def introduce_mismatch(primer_sequence: str, fall_back=False) -> str:
     """
     Introduces a base mismatch at the antepenultimate position (3rd from last).
@@ -59,7 +61,7 @@ def calc_gc_content(sequence: str):
     return gc_total/len(sequence)
 
 
-def rank_primers(primers: list[dict], target_tm = 62.5, target_gc = 50, optimism = 5) -> list[dict]:
+def rank_primers(primers: list[dict], target_tm = 60, target_gc = 50) -> list[dict]:
     """
         Rank primers based on Tm proximity to 62.5Â°C and GC content.
         TODO: Refine ranking criteria.
@@ -69,11 +71,12 @@ def rank_primers(primers: list[dict], target_tm = 62.5, target_gc = 50, optimism
     for primer in primers:
         primer["tm_score"] = abs(primer["tm"] - target_tm)
         primer["gc_score"] = abs(primer["gc_content"] - target_gc)
-        primer["score"] = primer["tm_score"] + primer["hairpin"] + primer["homomdimer"] + primer["gc_score"] 
+        primer["score"] = primer["tm_score"] + primer["gc_score"] 
 
     primers.sort(key=lambda x: x["score"])
 
-    return primers[:optimism]
+    return primers
+
 
 
 def filter_little(filter_name: str, old_list: list[dict], filter_function, strict):
@@ -82,13 +85,29 @@ def filter_little(filter_name: str, old_list: list[dict], filter_function, stric
     new_list = list(filter(filter_function, old_list))
     #if after the filter we don't have anything left
     if not new_list and not strict:
-        #just use the old list
         new_list = old_list
-        #print a statement for debugging purposes
-        print(f"{old_list[0]["snpID"]}: {filter_name} failed; using previous list.")
-        
         #the fail count goes up
         fail_count = 1
+        log_info = []
+        if  filter_name =="tm Max":
+            for primer in old_list:
+                log_info.append(f"{primer["tm"]} ")
+            log_info.sort()
+        elif filter_name == "tm Min":
+            for primer in old_list:
+                log_info.append(f"{primer["tm"]} ")
+            log_info.sort(reverse=True)
+        elif filter_name == "homodimer":
+            for primer in old_list:
+                log_info.append(f"{primer["homodimer"]} ")
+            log_info.sort(reverse=True)
+        else:
+            for primer in old_list:
+                log_info.append(f"{primer["hairpin"]} ")
+            log_info.sort(reverse=True)
+        #log the fail
+        logger.warning(f"{old_list[0]["snpID"]} allele {old_list[0]["allele"]} failed {filter_name}. Results: {log_info}")
+
     elif not new_list and strict:
         raise ValueError("nothing passed in strict mode")
         
@@ -135,20 +154,25 @@ def filter_one_list(allele_list: list[dict],
     # total_fails = [f"low temp fails: {ltm_fail_count}", f"high temp fails: {htm_fail_count}", f"homodimer fails: {homo_fail_count}", f"hairpin fails: {hair_fail_count}"]
   
     total_fails_ints = [ltm_fail_count, htm_fail_count, homo_fail_count, hair_fail_count]
-    
-    return (allele_phair, total_fails_ints)
+    result = rank_primers(allele_phair)
+
+    return (result, total_fails_ints)
 
 def filter_all_list(all_snp_primers, desired_tm: float = 60.0, diff: float = 3.0, homodimer_goal: float = -3.0, hairpin_goal: float = -3.0, strict_mode = False) -> (list[dict], list[int]):
+
     filt_all_primers = []
-    total_fails = [0, 0, 0, 0]
+    tm_min_fails = 0
+    tm_max_fails = 0
+    homodimer_fails = 0
+    hairpin_fails = 0
     for allele_primer in all_snp_primers:
         good_primers, fails = filter_one_list(allele_primer, desired_tm, diff, homodimer_goal, hairpin_goal, strict_mode)
         filt_all_primers.append(good_primers)
-        total_fails[0] += fails[0]
-        total_fails[1] += fails[1]
-        total_fails[2] += fails[2]
-        total_fails[3] += fails[3]
-    print(total_fails)
+        tm_min_fails += fails[0]
+        tm_max_fails += fails[1]
+        homodimer_fails += fails[2]
+        hairpin_fails += fails[3]
+    logger.info(f"lower TM fails: {tm_min_fails}, all tm too high: {tm_max_fails}, low homodimer with > 40C tm: {homodimer_fails}, low haripin with > 40C tm: {hairpin_fails}")
     return filt_all_primers
 def generate_allele_specific_primers(snps_list: list[dict], min_len: int = 18, max_len: int = 24, fallback=False) -> list[list[dict]]:
     # make primers makes a dictionary for every length of one direction of an allele for a SNP.
@@ -210,7 +234,8 @@ def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> 
                 "homomdimer" : primer3.bindings.calc_homodimer(trimmed)
             })
     else:
-        print(f"The length of your forward primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {seq_length}")
+        print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {seq_length}")
+        logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {seq_length}")
     return primers
 
 
@@ -278,8 +303,10 @@ def generate_matching_primers(primer_king, snp_json, primer_start = 0, min_len =
             passes = True
         except ValueError as e:
             print(e)
+            logger.warning(e)
             start += 3 #this length might not be the best here, but we need some kind of step though
             if start > max_dist-max_len:
+                logger.critical(f'{primer_king['snpID']} allele {primer_king['allele']} had no useable far primers')
                 raise Exception("you've tried every possible primer. What have you done??")
         
     
