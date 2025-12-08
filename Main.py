@@ -11,7 +11,7 @@ ENSEMBL_REST = "https://rest.ensembl.org"
 
 # https://rest.ensembl.org/variation/homo_sapiens/rs1799971?
 
-def Fetch_SNP_Data(rsids: List[str], flank_length: int = 800, use_all = False) -> list[dict]:
+def Fetch_SNP_Data(rsids: List[str], flank_length: int = 800, use_all = True) -> list[dict]:
     """
     Retrieves SNP data from the Ensembl API, including flanking sequences and alleles.
 
@@ -125,8 +125,7 @@ def Fetch_SNP_Data(rsids: List[str], flank_length: int = 800, use_all = False) -
 
     # If nothing was successfully retrieved, return an empty DataFrame
     if not snp_data:
-        print("No valid SNP data could be retrieved.")
-        return []
+        raise Exception("No valid SNP data could be retrieved.")
   
 
     return snp_data
@@ -147,7 +146,7 @@ def Main():
     start = datetime.now()
     
     logging.basicConfig(
-        filename="primer_fails.log",
+        filename="primer_info.log",
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s"
     )
@@ -250,9 +249,9 @@ def Main():
                 {'snpID': 'rs28842593', 'allele': 'C', 'sequence': 'GATATGTTTTGCATATGATACTCCATTGTACAGCAGCAACAGCTAGAACTAAGCTGTTGTA', 'position': 30}, 
                 {'snpID': 'rs7014597', 'allele': 'A', 'sequence': 'TGTCAAGGCCACCCTGGGCTTGAAGGGACCAGCCATGCCTCCAAGCCTTGCCCAGAGAGGG', 'position': 30}, 
                 {'snpID': 'rs7014597', 'allele': 'C', 'sequence': 'TGTCAAGGCCACCCTGGGCTTGAAGGGACCCGCCATGCCTCCAAGCCTTGCCCAGAGAGGG', 'position': 30}] 
-    # snp_df = Fetch_SNP_Data(['rs1044922', 'rs6664536', 'rs367950410'], 30)
+
     logger = logging.getLogger(__name__)
-    # print(snp_df)
+    print(snp_df)
     snp_end = datetime.now()
 
     primers = generate_allele_specific_primers(snp_df, 18, 24)
