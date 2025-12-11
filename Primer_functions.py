@@ -253,12 +253,15 @@ def generate_matching_primers(primer_king, snp_json, primer_start = 0, min_len =
         raise Exception("your sequence is so short it won't allow for even 1 primer to be maid. " \
         "Lower your min distance to have the API call for a longer string")
     snp_dict = {}
+    found = False
     for snp in snp_json:
         if  snp['snpID'] == primer_king['snpID']: # we only search for a matching SNP because we aren't even using the allele section    
             snp_dict = snp
+            found = True
             break
-        else:
-            raise Exception("there is no matching entry in the Json list")
+        
+    if found == False:
+        raise Exception(f"there is no matching entry in the Json list for {primer_king['snpID']}")
    
     
     middle = snp_dict['position']
