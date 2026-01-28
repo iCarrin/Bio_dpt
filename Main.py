@@ -168,7 +168,7 @@ def Main():
     logger = logging.getLogger(__name__)
     # print(snp_df)
     snp_end = datetime.now()
-    print("startng")
+    # print("starting")
     primers = generate_allele_specific_primers(snp_df, 18, 24)
     primer_close_end = datetime.now()
 
@@ -176,21 +176,21 @@ def Main():
     filter_end = datetime.now()
 
     best_primers, fights = multiplex_close(filt)
-    print("fights")
-    print(fights)
+    # print("fights")
+    # print(fights)
     multi_end = datetime.now()
   
     # print(generate_matching_primers(best_primers[2], snp_df))
 
 
     far = multiplex_far(best_primers, snp_df)
-    # print("far")
+    
     # print(far)
     far_end = datetime.now()
     
-    for i in range(len(best_primers)):
-        print(best_primers[i])
-        print(far[i])
+    # for i in range(len(best_primers)):
+    #     print(best_primers[i])
+    #     print(far[i])
     
 
     end = datetime.now()
@@ -201,7 +201,6 @@ def Main():
     logger.info(f"multiplexing close took : {multi_end - filter_end}")
     logger.info(f"generate far took : {far_end - multi_end}")
     logger.info(f"total time : {end-start}")
-
+    print("done, check the log")
 if(__name__ == "__main__"):
     Main()
-

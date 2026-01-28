@@ -6,15 +6,16 @@ import json
 # import prc_lib as plib
 # # snp = 'ATGCAATTGGCCAAATTTGGGCCCAAAATTTTGGGGCCCCAAAAATTTTTGGGGGCCCCCAAAAAATTTTTTGGGGGGCCCCCC'
 # print(primer3.bindings.calc_hairpin('AAAATAACTTCAATTCTACACAGTACGTGTC'))
-with open('clean_primer_samples.txt', 'w') as output:
-    with open("primer_samples.txt", "r") as input:
-        for line in input:
-            seq = json.loads(line)
-            if re.match(r'^[ATCGatcg]$' ,seq['allele']) and re.match(r'^[ATCGatcg]+$' ,seq['sequence']):
-                output.write(f"{str(seq)}\n")
+# with open('clean_primer_samples.txt', 'w') as output:
+#     with open("primer_samples.txt", "r") as input:
+#         for line in input:
+#             seq = json.loads(line)
+#             if re.match(r'^[ATCGatcg]$' ,seq['allele']) and re.match(r'^[ATCGatcg]+$' ,seq['sequence']):
+#                 output.write(f"{str(seq)}\n")
 
 
-
+for i in range(10):
+    print(i+1)
 
     # snp_df = []
     # with open('clean_primer_samples.txt', 'r') as output:

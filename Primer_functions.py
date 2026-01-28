@@ -273,7 +273,7 @@ def generate_matching_primers(primer_king, snp_json, primer_start = 0, min_len =
     #get the far sequence and reverse complement is if necessary
     if direction == "forward":
         seq_pre_rev_comp = whole_sequence[middle+min_dist:middle+max_dist]#everything from snp (middle) plus start dist cutting off at max if necessary (end is exclusive so +1)
-        far_sequence = str(Seq(seq_pre_rev_comp).reverse_complement()) #change to sequence object, reverse complement it, and change it back
+        far_sequence = str(Seq(seq_pre_rev_comp).reverse_complement()) #change to sequence object, reverse complement it, and change it back to string
         #                                         _______  
         #                      _________          \______\_
         #  What we're given _/__________|           \_______\ what we make 
@@ -291,10 +291,11 @@ def generate_matching_primers(primer_king, snp_json, primer_start = 0, min_len =
     passes = False
     start = primer_start
 
-    #get some far primers for primer_king, but only the best (use strict mode). if the filter failes the while loop should try again farther down the line
+    #get some far primers for primer_king, but only the best (use strict mode). if the filter fails the while loop should try again farther down the line
     #if the ones that pass don't pass the heterodimer then primer_start should be updated and the whole thing tried again.
     while(not passes):
-        # the reverse complement flips the sequence each time so we can iterate over each one the same way and flip back later.
+        # the reverse complement flips the sequence each time so we can iterate over each one the same way. Researchers expect DNA to come in the forward
+        # format even if it was reversed in real life, so no need to flip it back. The note that it should be reversed is enough.
         # each one will walk back from the right side 
 
         trial_snip = far_sequence[-(max_len+start) : -start or None] # this takes a chunk to feed into a primer generator
@@ -307,10 +308,16 @@ def generate_matching_primers(primer_king, snp_json, primer_start = 0, min_len =
         except ValueError as e:
             print(e)
             logger.warning(e)
-            start += 3 #this length might not be the best here, but we need some kind of step though
+            start += 3 #extensive testing shows that 6 is the fastest step to run (See google sheet in the git hub)
             if start > max_dist-max_len:
                 logger.critical(f'{primer_king['snpID']} allele {primer_king['allele']} had no useable far primers')
                 raise Exception("you've tried every possible primer. What have you done??")
         
     
     return filt_far, start
+
+# def generate_probe (dna_dict, far_start, probe_start, min_len = 18, max_len = 24)
+#     if not probe_start:
+#         probe_start = dna_dict["position"] - far_start
+
+#         1 - 1500 - 3000
