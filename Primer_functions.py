@@ -308,7 +308,7 @@ def generate_matching_primers(primer_king, snp_json, primer_start = 0, min_len =
         except ValueError as e:
             print(e)
             logger.warning(e)
-            start += 3 #extensive testing shows that 6 is the fastest step to run (See google sheet in the git hub)
+            start += 3 #extensive testing shows that 6 is the fastest step to run (See readme for link)
             if start > max_dist-max_len:
                 logger.critical(f'{primer_king['snpID']} allele {primer_king['allele']} had no useable far primers')
                 raise Exception("you've tried every possible primer. What have you done??")
