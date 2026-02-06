@@ -172,10 +172,10 @@ def Main():
     primers = generate_allele_specific_primers(snp_df, 18, 24)
     primer_close_end = datetime.now()
 
-    filt = filter_all_list(primers)
-    filter_end = datetime.now()
+    # filt = filter_all_list(primers)
+    # filter_end = datetime.now()
 
-    best_primers, fights = multiplex_close(filt)
+    best_primers, fights = multiplex_close(primers)
     # print("fights")
     # print(fights)
     multi_end = datetime.now()
@@ -188,9 +188,9 @@ def Main():
     # print(far)
     far_end = datetime.now()
     
-    # for i in range(len(best_primers)):
-    #     print(best_primers[i])
-    #     print(far[i])
+    for i in range(len(best_primers)):
+        print(best_primers[i])
+        print(far[i])
     
 
     end = datetime.now()
