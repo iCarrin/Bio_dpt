@@ -1,4 +1,4 @@
-from classes import Primer, FilterFail
+from Primer_Classes import *
 import re 
 from Bio.Seq import Seq
 import primer3
@@ -53,15 +53,15 @@ def introduce_mismatch(primer_sequence: str, fall_back=False) -> str:
     return primer_sequence[:pos] + mismatch + primer_sequence[pos + 1:]
 
 
-def calc_gc_content(sequence: str):
-    gc_total = 0
-    for nucleotide in sequence:
-        if nucleotide == 'G' or nucleotide == 'C':
-            gc_total += 1
-    return gc_total/len(sequence)
+# def calc_gc_content(sequence: str):
+#     gc_total = 0
+#     for nucleotide in sequence:
+#         if nucleotide == 'G' or nucleotide == 'C':
+#             gc_total += 1
+#     return gc_total/len(sequence)
 
 
-def rank_primers(primers: list[dict], target_tm = 60, target_gc = 50) -> list[dict]:
+def rank_primers(primers: list[Primer], target_tm = 60, target_gc = 50) -> list[dict]:
     """
         Rank primers based on Tm proximity to 62.5Â°C and GC content.
         TODO: Refine ranking criteria.
@@ -69,114 +69,114 @@ def rank_primers(primers: list[dict], target_tm = 60, target_gc = 50) -> list[di
         - Add user-configurable ranking metrics.
         """
     for primer in primers:
-        primer["tm_score"] = abs(primer["tm"] - target_tm)
-        primer["gc_score"] = abs(primer["gc_content"] - target_gc)
-        primer["score"] = primer["tm_score"] + primer["gc_score"] 
+        tm_score = abs(primer["tm"] - target_tm)
+        gc_score = abs(primer["gc_content"] - target_gc)
+        primer.set_rank(tm_score + gc_score)
 
-    primers.sort(key=lambda x: x["score"])
+    primers.sort(key=lambda x: x.rank)
 
     return primers
 
 
 
-def filter_little(filter_name: str, old_list: list[dict], filter_function, strict):
-    # fail_count is only 0 or 1, but we'll add it to a total to see what's bugging out
-    fail_count = 0
-    new_list = list(filter(filter_function, old_list))
-    #if after the filter we don't have anything left
-    if not new_list and not strict:
-        new_list = old_list
-        #the fail count goes up
-        fail_count = 1
-        log_info = []
-        if  filter_name =="tm Max":
-            for primer in old_list:
-                log_info.append(f"{primer["tm"]} ")
-            log_info.sort()
-        elif filter_name == "tm Min":
-            for primer in old_list:
-                log_info.append(f"{primer["tm"]} ")
-            log_info.sort(reverse=True)
-        elif filter_name == "homodimer":
-            for primer in old_list:
-                log_info.append(f"{primer["homodimer"]} ")
-            log_info.sort(reverse=True)
-        else:
-            for primer in old_list:
-                log_info.append(f"{primer["hairpin"]} ")
-            log_info.sort(reverse=True)
-        #log the fail
-        logger.warning(f"{old_list[0]["snpID"]} allele {old_list[0]["allele"]} failed {filter_name}. Results: {log_info}")
+# def filter_little(filter_name: str, old_list: list[dict], filter_function, strict):
+#     # fail_count is only 0 or 1, but we'll add it to a total to see what's bugging out
+#     fail_count = 0
+#     new_list = list(filter(filter_function, old_list))
+#     #if after the filter we don't have anything left
+#     if not new_list and not strict:
+#         new_list = old_list
+#         #the fail count goes up
+#         fail_count = 1
+#         log_info = []
+#         if  filter_name =="tm Max":
+#             for primer in old_list:
+#                 log_info.append(f"{primer["tm"]} ")
+#             log_info.sort()
+#         elif filter_name == "tm Min":
+#             for primer in old_list:
+#                 log_info.append(f"{primer["tm"]} ")
+#             log_info.sort(reverse=True)
+#         elif filter_name == "homodimer":
+#             for primer in old_list:
+#                 log_info.append(f"{primer["homodimer"]} ")
+#             log_info.sort(reverse=True)
+#         else:
+#             for primer in old_list:
+#                 log_info.append(f"{primer["hairpin"]} ")
+#             log_info.sort(reverse=True)
+#         #log the fail
+#         logger.warning(f"{old_list[0]["snpID"]} allele {old_list[0]["allele"]} failed {filter_name}. Results: {log_info}")
 
-    elif not new_list and strict:
-        raise ValueError("nothing passed in strict mode")
+#     elif not new_list and strict:
+#         raise ValueError("nothing passed in strict mode")
         
-    #return the list that hopefully was able to filter and weather or not it failed
-    return(new_list, fail_count)
+#     #return the list that hopefully was able to filter and weather or not it failed
+#     return(new_list, fail_count)
 
 
-def filter_one_list(allele_list: list[dict],
-                         desired_tm: float = 60.0,
-                         diff: float = 3.0,
-                         homodimer_goal: float = -3.0,
-                         hairpin_goal: float = -3.0,
-                         strict_mode = False) -> (list[dict], list[int]):
+# def filter_one_list(allele_list: list[dict],
+#                          desired_tm: float = 60.0,
+#                          diff: float = 3.0,
+#                          homodimer_goal: float = -3.0,
+#                          hairpin_goal: float = -3.0,
+#                          strict_mode = False) -> (list[dict], list[int]):
     
-    """
-    Soft filter a single candidate list such as the stage1_filter behavior
-    Order is homodimer, hairpin, tm > lower, tm < upper
+#     """
+#     Soft filter a single candidate list such as the stage1_filter behavior
+#     Order is homodimer, hairpin, tm > lower, tm < upper
     
-    Applies the 4 checks and then returns filtered list of primer string
-    for that one candidate list
+#     Applies the 4 checks and then returns filtered list of primer string
+#     for that one candidate list
 
-    The checks are homodimer, hairpin, tm, 
+#     The checks are homodimer, hairpin, tm, 
 
-    Used in the R stage1_filter:
-        homodimer < homodimer_goal
-        hairpin   < hairpin_goal
-        Tm        < desired_tm + diff      # "above upper" trim
-        Tm        > desired_tm - diff      # "below lower" trim
-    """
-    #make sure we're getting an actuall list of dictionaries
-    if not allele_list:
-        raise Exception("There was not list of dictionaries passed in")
+#     Used in the R stage1_filter:
+#         homodimer < homodimer_goal
+#         hairpin   < hairpin_goal
+#         Tm        < desired_tm + diff      # "above upper" trim
+#         Tm        > desired_tm - diff      # "below lower" trim
+#     """
+#     #make sure we're getting an actuall list of dictionaries
+#     if not allele_list:
+#         raise Exception("There was not list of dictionaries passed in")
     
-    # tm > min
-    allele_pltm, ltm_fail_count = filter_little("tm Min", allele_list, lambda x : x["tm"] >= (desired_tm - diff), strict_mode)
+#     # tm > min
+#     allele_pltm, ltm_fail_count = filter_little("tm Min", allele_list, lambda x : x["tm"] >= (desired_tm - diff), strict_mode)
     
-    # tm < max
-    allele_phtm, htm_fail_count = filter_little("tm Max", allele_pltm, lambda x : x["tm"] <= (desired_tm + diff), strict_mode)
-    # min < homodimer < max
-    allele_phomo, homo_fail_count = filter_little("homodimer", allele_phtm, lambda x : ( x["homomdimer"].dg > homodimer_goal* 1000 or x["homomdimer"].tm < 40), strict_mode)
-    #min < hairpin < max
-    allele_phair, hair_fail_count = filter_little("hairpin", allele_phomo, lambda x : ( x["hairpin"].dg > hairpin_goal* 1000 or x["homomdimer"].tm < 40), strict_mode)
+#     # tm < max
+#     allele_phtm, htm_fail_count = filter_little("tm Max", allele_pltm, lambda x : x["tm"] <= (desired_tm + diff), strict_mode)
+#     # min < homodimer < max
+#     allele_phomo, homo_fail_count = filter_little("homodimer", allele_phtm, lambda x : ( x["homomdimer"].dg > homodimer_goal* 1000 or x["homomdimer"].tm < 40), strict_mode)
+#     #min < hairpin < max
+#     allele_phair, hair_fail_count = filter_little("hairpin", allele_phomo, lambda x : ( x["hairpin"].dg > hairpin_goal* 1000 or x["homomdimer"].tm < 40), strict_mode)
     
-    # total_fails = [f"low temp fails: {ltm_fail_count}", f"high temp fails: {htm_fail_count}", f"homodimer fails: {homo_fail_count}", f"hairpin fails: {hair_fail_count}"]
+#     # total_fails = [f"low temp fails: {ltm_fail_count}", f"high temp fails: {htm_fail_count}", f"homodimer fails: {homo_fail_count}", f"hairpin fails: {hair_fail_count}"]
   
-    total_fails_ints = [ltm_fail_count, htm_fail_count, homo_fail_count, hair_fail_count]
-    result = rank_primers(allele_phair)
+#     total_fails_ints = [ltm_fail_count, htm_fail_count, homo_fail_count, hair_fail_count]
+#     result = rank_primers(allele_phair)
 
-    return (result, total_fails_ints)
+#     return (result, total_fails_ints)
 
-def filter_all_list(all_snp_primers, desired_tm: float = 60.0, diff: float = 3.0, homodimer_goal: float = -3.0, hairpin_goal: float = -3.0, strict_mode = False) -> (list[dict], list[int]):
+# def filter_all_list(all_snp_primers, desired_tm: float = 60.0, diff: float = 3.0, homodimer_goal: float = -3.0, hairpin_goal: float = -3.0, strict_mode = False) -> (list[dict], list[int]):
 
-    filt_all_primers = []
-    tm_min_fails = 0
-    tm_max_fails = 0
-    homodimer_fails = 0
-    hairpin_fails = 0
-    for allele_primer in all_snp_primers:
-        good_primers, fails = filter_one_list(allele_primer, desired_tm, diff, homodimer_goal, hairpin_goal, strict_mode)
-        filt_all_primers.append(good_primers)
-        tm_min_fails += fails[0]
-        tm_max_fails += fails[1]
-        homodimer_fails += fails[2]
-        hairpin_fails += fails[3]
-    logger.info(f"lower TM fails: {tm_min_fails}, all tm too high: {tm_max_fails}, low homodimer with > 40C tm: {homodimer_fails}, low haripin with > 40C tm: {hairpin_fails}")
-    return filt_all_primers
+#     filt_all_primers = []
+#     tm_min_fails = 0
+#     tm_max_fails = 0
+#     homodimer_fails = 0
+#     hairpin_fails = 0
+#     for allele_primer in all_snp_primers:
+#         good_primers, fails = filter_one_list(allele_primer, desired_tm, diff, homodimer_goal, hairpin_goal, strict_mode)
+#         filt_all_primers.append(good_primers)
+#         tm_min_fails += fails[0]
+#         tm_max_fails += fails[1]
+#         homodimer_fails += fails[2]
+#         hairpin_fails += fails[3]
+#     logger.info(f"lower TM fails: {tm_min_fails}, all tm too high: {tm_max_fails}, low homodimer with > 40C tm: {homodimer_fails}, low haripin with > 40C tm: {hairpin_fails}")
+#     return filt_all_primers
 
 
-def generate_allele_specific_primers(snps_list: list[dict], min_len: int = 18, max_len: int = 24, fallback=False) -> list[list[dict]]:
+def generate_allele_specific_primers(snps_list: list[Primer], min_len: int = 18, max_len: int = 24, fallback=False) -> list[list[dict]]:
     # make primers makes a dictionary for every length of one direction of an allele for a SNP.
     # those dictionaries are stored in a list, so a list for forward and a list for backward
     # those lists are stored in another list, one for each SNP. 
@@ -188,6 +188,7 @@ def generate_allele_specific_primers(snps_list: list[dict], min_len: int = 18, m
         - Use parallel processing (e.g., multiprocessing) for many SNPs.
         - Add validation for sequence length and SNP position.
         """
+    
     all_primers = []
     min_len -= 2 #don't know why but 2 and 1 have to be removed from the inputs to get the desired lengths
     max_len -= 1
@@ -203,8 +204,10 @@ def generate_allele_specific_primers(snps_list: list[dict], min_len: int = 18, m
                     + (make_primers(reverse_mismatch, min_len, max_len, snp_id, allele, "reverse"))# this make one list of 
     for snp in snps_list:
         allele_primers = make_allele_list(snp["snpID"], snp["allele"], snp["sequence"], snp["position"])
-        all_primers.append(allele_primers) #this adds this list to the larger list
-
+        if allele_primers:
+            all_primers.append(allele_primers) #this adds this list to the larger list
+        else:
+            print(f"snp: {snp["snpID"]} allele: {snp["allele"]} didn't make the cut")
     return all_primers # this will return a list of lists of dictionaries. Each allele is a list. 
 
 
@@ -236,10 +239,11 @@ def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> 
             #     "homomdimer" : primer3.bindings.calc_homodimer(trimmed)
             # })
 
-            try:
-                Primer(snp_id, allele, trimmed, direction, 60.0, 3.0, -3.0, -3.0)
+            try:                                                            #these need to be user controlled inputs
+                primers.append(Primer(snp_id, allele, trimmed, direction, 60.0, 3.0, -3.0, -3.0))
             except FilterFail:
-                logging.error(f"{snp_id} allele: {allele} had no primers that passed the filtering")
+                pass
+                # logging.error(f"{snp_id} allele: {allele} had no primers that passed the filtering")
 
     else:
         print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {seq_length}")
@@ -256,27 +260,25 @@ def generate_matching_primers(primer_king, snp_json, primer_start = 0, min_len =
         - Use primer3-py's designPrimers for more efficient pairing.
         - Add checks for primer pair compatibility (e.g., Tm difference < 5Â°C).
     """
-
     if len(snp_json[0]['sequence']) < (min_dist+17)/2:
         raise Exception("your sequence is so short it won't allow for even 1 primer to be maid. " \
         "Lower your min distance to have the API call for a longer string")
     snp_dict = {}
     found = False
     for snp in snp_json:
-        if  snp['snpID'] == primer_king['snpID']: # we only search for a matching SNP because we aren't even using the allele section    
+        if  snp['snpID'] == primer_king.snpID: # we only search for a matching SNP because we aren't even using the allele section    
             snp_dict = snp
             found = True
-            break
-        
+            break   
     if found == False:
         raise Exception(f"there is no matching entry in the Json list for {primer_king['snpID']}")
    
     
     middle = snp_dict['position']
     whole_sequence = snp_dict['sequence']
-    direction = primer_king['direction']
+    direction = primer_king.direction
     far_sequence = ""
-    temp = primer_king['tm']
+    
 
     #get the far sequence and reverse complement is if necessary
     if direction == "forward":
@@ -305,21 +307,22 @@ def generate_matching_primers(primer_king, snp_json, primer_start = 0, min_len =
         # the reverse complement flips the sequence each time so we can iterate over each one the same way. Researchers expect DNA to come in the forward
         # format even if it was reversed in real life, so no need to flip it back. The note that it should be reversed is enough.
         # each one will walk back from the right side 
-
         trial_snip = far_sequence[-(max_len+start) : -start or None] # this takes a chunk to feed into a primer generator
         
       
         try:#filter strict mode will throw an error so we use try except
-            far_primers = make_primers(trial_snip, min_len, max_len, primer_king['snpID'], primer_king['allele'], direction)
+            far_primers = make_primers(trial_snip, min_len, max_len, primer_king.snpID, primer_king.allele, direction)
             # filt_far, _ = filter_one_list(far_primers, temp, 2, strict_mode=True)\
             if far_primers:
                 passes = True
+            else:
+                start += 6
         except ValueError as e:
             print(e)
             logger.warning(e)
             start += 6 #extensive testing shows that 6 is the fastest step to run (See readme for link)
             if start > max_dist-max_len:
-                logger.critical(f'{primer_king['snpID']} allele {primer_king['allele']} had no useable far primers')
+                logger.critical(f'{primer_king.snpID} allele {primer_king.allele} had no useable far primers')
                 raise Exception("you've tried every possible primer. What have you done??")
         
     
