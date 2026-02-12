@@ -1,5 +1,6 @@
 from Primer_functions import *
 from Multiplex import *
+from Primer_Classes import *
 import re # run 'pip install regex' if not already installed
 import time # to handle rate limiting
 import requests
@@ -86,7 +87,6 @@ def Fetch_SNP_Data(rsids: List[str], flank_length: int = 800, use_all = True) ->
             seq_start = max(1, pos - flank_length)  # 1-based for Ensemble 
             seq_end = pos + flank_length #might run off the end of the chromosome if very unlucky
             seq_url = f"{ENSEMBL_REST}/sequence/region/human/{chrom}:{seq_start}..{seq_end}:1?"
-            # print (f'chrom: {chrom}\nseq_start: {seq_start}\nseq_end: {seq_end}')
             seq_resp = requests.get(seq_url, headers={"Content-Type": "text/plain"})
             
             seq_resp.raise_for_status()
@@ -168,39 +168,42 @@ def Main():
     logger = logging.getLogger(__name__)
     # print(snp_df)
     snp_end = datetime.now()
-    # print("starting")
+
     primers = generate_allele_specific_primers(snp_df, 18, 24)
     primer_close_end = datetime.now()
+    # for primer in primers:
+    #     if primer:
+    #         print("full")
+    #     else:
+    #         print("empty")
+    #     for john in primer:
+    #         print(john.get_names())
+    ###the primers aren't being made. First thought it was primers.append wasn't working but that's not all of it so keep looking
+
 
     # filt = filter_all_list(primers)
     # filter_end = datetime.now()
 
     best_primers, fights = multiplex_close(primers)
-    # print("fights")
-    # print(fights)
-    multi_end = datetime.now()
-  
-    # print(generate_matching_primers(best_primers[2], snp_df))
 
+    multi_end = datetime.now()
+ 
 
     far = multiplex_far(best_primers, snp_df)
     
-    # print(far)
     far_end = datetime.now()
-    
-    for i in range(len(best_primers)):
-        print(best_primers[i])
-        print(far[i])
+    # for i in range(len(best_primers)):
+    #     print(vars(best_primers[i]))
+    #     print(vars(far[i]))
     
 
     end = datetime.now()
     logger.info(f"allele's run {len(snp_df)}")
     logger.info(f"fetch_snp took : {snp_end - start}")
     logger.info(f"generate_allele_specific_primer took : {primer_close_end - snp_end}")
-    logger.info(f"filter_primers took : {filter_end - primer_close_end}")
-    logger.info(f"multiplexing close took : {multi_end - filter_end}")
+    # logger.info(f"filter_primers took : {filter_end - primer_close_end}")
+    logger.info(f"multiplexing close took : {multi_end - snp_end}")
     logger.info(f"generate far took : {far_end - multi_end}")
     logger.info(f"total time : {end-start}")
-    print("done, check the log")
 if(__name__ == "__main__"):
     Main()
