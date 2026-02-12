@@ -1,7 +1,7 @@
+from Primer_Classes import *
 import primer3
 from itertools import combinations
 from Primer_functions import generate_matching_primers
-
 
 def multiplex_far(close_primers, snp_list, hetero_max = 9):
     '''
@@ -9,11 +9,9 @@ def multiplex_far(close_primers, snp_list, hetero_max = 9):
     
     '''
     all_good_fars = [] 
-
     for close_primer in close_primers: # find each close primer a far primer match
         primer_start = 0 #if we have to generate more far primers we know where we left off along the string
         close_success = False 
-
         while(not close_success):
 
             possibles, where_we_ended = generate_matching_primers(close_primer, snp_list, primer_start) #start by getting a list of possible close primers
@@ -22,7 +20,7 @@ def multiplex_far(close_primers, snp_list, hetero_max = 9):
                 hetro_found = False
                 for primer in (close_primers + all_good_fars): #compare this far primer against all close and already found far primers
 
-                    het = primer3.calc_heterodimer(far['primer_sequence'], primer['primer_sequence']) # calculate it's heterodimer value every other primer far and close
+                    het = primer3.calc_heterodimer(far.primer_sequence, primer.primer_sequence) # calculate it's heterodimer value every other primer far and close
                     if het.dg < hetero_max*-1000 and het.tm > 40:#it only fails if it has a delta gibbs lower than the max AND the dimer will happen at temp that will bother us
                         hetro_found = True 
                         break #stop checking early
@@ -41,7 +39,7 @@ def multiplex_far(close_primers, snp_list, hetero_max = 9):
 
 
 #this is basically a glorified heterodimer filter. Glorified because it has to check all options against all others 
-def multiplex_close(big_list: list[list[dict]], heterodimer_max = 50.0):
+def multiplex_close(big_list: list[list[Primer]], heterodimer_max = 50.0):
     """
     This is the heterodimer close primer filter. 
     The thought was that if we filter the close primers to where they like each other than the far primers will have
@@ -80,7 +78,7 @@ def multiplex_close(big_list: list[list[dict]], heterodimer_max = 50.0):
         """
         This function was made to cut down on the noise that comes from calling the primer calc_heterodimer function
         """
-        return primer3.calc_heterodimer(get_primer(left, leftPrimer)['primer_sequence'], get_primer(right)['primer_sequence'])
+        return primer3.calc_heterodimer(get_primer(left, leftPrimer).primer_sequence, get_primer(right).primer_sequence)
 
 
     def find_best_primer(allele):
@@ -146,8 +144,8 @@ def multiplex_close(big_list: list[list[dict]], heterodimer_max = 50.0):
     
 
     for left, right in fight_combos:#
-        fighting_alleles.append((f"{get_primer(left)['snpID']} : {get_primer(left)['allele']}", 
-                                f"{get_primer(right)['snpID']} : {get_primer(right)['allele']}"))
+        fighting_alleles.append((f"{get_primer(left).snpID} : {get_primer(left).allele}", 
+                                f"{get_primer(right).snpID} : {get_primer(right).allele}"))
         
     out_list = [get_primer(i) for i in range(list_size)]
 
