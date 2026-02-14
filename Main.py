@@ -11,6 +11,7 @@ import json
 ENSEMBL_REST = "https://rest.ensembl.org"
 
 # https://rest.ensembl.org/variation/homo_sapiens/rs1799971?
+# https://rest.ensembl.org/sequence/region/human/6:154039632..154039692:1
 
 def Fetch_SNP_Data(rsids: List[str], flank_length: int = 800, use_all = True) -> list[dict]:
     """
@@ -169,7 +170,7 @@ def Main():
     # print(snp_df)
     snp_end = datetime.now()
 
-    primers = generate_allele_specific_primers(snp_df, 18, 24)
+    primers = generate_allele_specific_probes(snp_df, 28, 32)
     primer_close_end = datetime.now()
     # for primer in primers:
     #     if primer:

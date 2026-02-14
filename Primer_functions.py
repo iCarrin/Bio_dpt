@@ -212,10 +212,61 @@ def generate_allele_specific_primers(snps_list: list[Primer], min_len: int = 18,
 
 
 
-# def generate_probes() -> list[list[probes]]:
-#     return [[[]]]
+def generate_allele_specific_probes(snp_json: list[dict], min_len: int = 28, max_len: int = 32) -> list[list[Probe]]:
+    all_probes = []
+    def make_allele_probes_list(snp_id, allele, sequence, snp_pos):
+        #add a check here for length so that make primers doesn't have to.
+        flank_len = max_len//2#this gives the shorter half
+                            #this gives us the longer half so in case we need to drop a g form the 5' end it balances better
+        forward = sequence[snp_pos - flank_len : snp_pos+(flank_len)+1]#this gets the largest segment.   
+
+        reverse = str(Seq(sequence[snp_pos-flank_len : snp_pos+flank_len+1]).reverse_complement()) #creates a Biopython sequence, gets the reverse complement, and converts is back to a string
+
+        return (make_probes(forward, min_len, snp_id, allele))\
+                + (make_probes(reverse, min_len, snp_id, allele, "reverse"))
 
 
+    for snp in snp_json:
+        allele_probes = make_allele_probes_list(snp["snpID"], snp["allele"], snp["sequence"], snp["position"])
+        if allele_probes:
+            all_probes.append(allele_probes)
+        else:
+            print(f"snp: {snp["snpID"]} allele: {snp["allele"]} didn't make the cut")
+    
+    return all_probes
+
+def make_probes(seq, min_len, snp_id, allele, direction="forward") -> list[Probe]: 
+    
+    probes = []
+
+
+    if len(seq) >= min_len:   #len(seq) should just be max_len. It only wont be if the seq length is less than max_len (if the sequence is only 10 long then we'll trigger this)
+        len_of_the_flank = (len(seq)-min_len)//2
+        for length in range(len_of_the_flank+1):#possible bug if the forward mismatch is smaller than the minimum length
+                                            #length is 0-max_len
+            trimmed = seq[length: -length if length != 0 else None]#this is assuming that the seq given is already the maximum length. 
+            # If given a crazy long string it will start at "length" and give the rest of the string
+            #take this part out of the loop, so we can have one dictionary that says the SNP ID and ALLELE and Direction, 
+            #and then a list in that dictionary of sequence and lengths. Storing the name over and over seems redundant ID
+
+            try:                                                            #these need to be user controlled inputs
+                probes.append(Probe(snp_id, allele, trimmed, direction, 70.0, 3.0, -3.0, -3.0))
+            except FilterFail:
+                pass
+            try:                                                            #these need to be user controlled inputs
+                probes.append(Probe(snp_id, allele, trimmed[:-1], direction, 70.0, 3.0, -3.0, -3.0))
+            except FilterFail:
+                pass
+            try:                                                            #these need to be user controlled inputs
+                probes.append(Probe(snp_id, allele, trimmed[1:], direction, 70.0, 3.0, -3.0, -3.0))
+            except FilterFail:
+                pass
+                # logging.error(f"{snp_id} allele: {allele} had no primers that passed the filtering")
+
+    else:
+        print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
+        logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
+    return probes
 
 def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> list[dict]: 
     
@@ -227,18 +278,7 @@ def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> 
             # If given a crazy long string it will start at "length" and give the rest of the string
             #take this part out of the loop, so we can have one dictionary that says the SNP ID and ALLELE and Direction, 
             #and then a list in that dictionary of sequence and lengths. Storing the name over and over seems redundant ID
-            # primers.append({
-            #     "snpID": snp_id,
-            #     "allele": allele,
-            #     "primer_sequence": trimmed, #this is the trimmed length
-            #     "direction": direction,
-            #     "length": len(trimmed),
-            #     "tm" : primer3.bindings.calc_tm(trimmed),
-            #     "gc_content" : calc_gc_content(trimmed),
-            #     "hairpin" : primer3.bindings.calc_hairpin(trimmed),
-            #     "homomdimer" : primer3.bindings.calc_homodimer(trimmed)
-            # })
-
+        
             try:                                                            #these need to be user controlled inputs
                 primers.append(Primer(snp_id, allele, trimmed, direction, 60.0, 3.0, -3.0, -3.0))
             except FilterFail:
@@ -246,7 +286,7 @@ def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> 
                 # logging.error(f"{snp_id} allele: {allele} had no primers that passed the filtering")
 
     else:
-        print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {seq_length}")
+        print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
         logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {seq_length}")
     return primers
 

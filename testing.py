@@ -5,7 +5,18 @@ import json
 from Primer_Classes import *
 # import numpy as np
 # import prc_lib as plib
-# # snp = 'ATGCAATTGGCCAAATTTGGGCCCAAAATTTTGGGGCCCCAAAAATTTTTGGGGGCCCCCAAAAAATTTTTTGGGGGGCCCCCC'
+# snp = 'ATGCAATTGGCCAAATTTGGGCCCAAAATTTTGGGGCCCCAAAAATTTTTGGGGGCCCCCAAAAAATTTTTTGGGGGGCCCCCC'
+sequence = 'TTCATGTCCTTCGCCCACTTgTTGATGGGGTTGTTTGTTTT'
+# AAAATAACTTCAATT
+
+# c
+# TACACAGTACGTGTC
+# TTCATGTCCTTCGCCCACTT g TTGATGGGGTTGTTTGTTTT
+# TTCATGTCCTTCGCCCACTT G TTGATGGGGTTGTTTGTTTT
+
+snp_df = [{'snpID': 'rs13328683', 'allele': 'G', 'sequence': 'TGT', 'position': 1}, 
+ {'snpID': 'rs13328683', 'allele': 'T', 'sequence': 'TTT', 'position': 1}]
+# print(snp_df[0]['sequence'][1])
 # print(primer3.bindings.calc_hairpin('AAAATAACTTCAATTCTACACAGTACGTGTC'))
 # with open('clean_primer_samples.txt', 'w') as output:
 #     with open("primer_samples.txt", "r") as input:
@@ -13,6 +24,33 @@ from Primer_Classes import *
 #             seq = json.loads(line)
 #             if re.match(r'^[ATCGatcg]$' ,seq['allele']) and re.match(r'^[ATCGatcg]+$' ,seq['sequence']):
 #                 output.write(f"{str(seq)}\n")
+
+min_len = 8
+snp_pos = 20
+#this gives the shorter half
+                            #this gives us the longer half so in case we need to drop a g form the 5' end it balances better
+# forward = sequence[snp_pos - (max_len-flank_len) : snp_pos+(flank_len)+1]#this gets the largest segment.   
+
+# reverse = str(Seq(sequence[snp_pos - (flank_len) : snp_pos + (max_len - flank_len + 1)]).reverse_complement())
+# reverse2 = str(sequence[snp_pos - (flank_len) : snp_pos + (max_len - flank_len + 1)])
+# I want to take a range and for each number make thant flaking length and either end options
+
+len_of_the_flank = (len(sequence)-min_len)//2
+for flank in range(len_of_the_flank+1):
+    middle_left = sequence[flank:(- flank - 1)]
+    middle_right = sequence[flank + 1 :(-flank) if flank != 0 else None]
+    middle_middle = sequence[flank:-(flank) if flank != 0 else None]
+ 
+
+    # print(flank)
+    # print(i)
+# print(sequence[0:])
+# print(flank_len)
+# print(forward)
+# print(reverse2)
+# print(reverse)
+
+
 
 
     # snp_df = []
@@ -29,24 +67,25 @@ from Primer_Classes import *
 #         print(i)
 
 
-class Dog():
-    def __init__(self, number, name, breed):
-        self.results = number
-        self.name = name
-        self.breed = breed
+# class Dog():
+#     def __init__(self, number, name, breed):
+#         self.results = number
+#         self.name = name
+#         self.breed = breed
 
-    def add_num (self, num):
-        self.results += num
+#     def add_num (self, num):
+#         self.results += num
 
-alfred = Dog(20, "kevin", "shitzhu")
-alfred.add_num(2)
-print(vars(alfred))
-print(alfred.__str__)
-print(alfred.__repr__)
-att = vars(alfred)
-print(att)
+# alfred = Dog(20, "kevin", "shitzhu")
+# alfred.add_num(2)
+# print(vars(alfred))
+# print(alfred.__str__)
+# print(alfred.__repr__)
+# att = vars(alfred)
+# print(att)
 # for i in range(10):
-#     print(Dog(i).results)
+#     # print(i)
+#     print(f' {i}: {i//2}')
 
 
 # snp = 'ABCDEFGHIJKLmNOPQRSTUVWXYZ'

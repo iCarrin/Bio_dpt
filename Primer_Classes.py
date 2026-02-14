@@ -51,8 +51,12 @@ class Primer():
 
         
 class Probe(Primer):
-    # def __init__(self, snp_id, allele, seq, length, direction):
-    #     super().__init__(snp_id, allele, seq, length, direction)
-    pass
+    def __init__(self, snp_id, allele, seq, length, direction, desired_tm: float = 60.0, diff: float = 3.0, homodimer_goal: float = -3.0, hairpin_goal: float = -3.0):
+        self.seq = seq
+        if self.seq[0] == "G":
+            raise FilterFail
+        super().__init__(snp_id, allele, seq, length, direction, desired_tm, diff, homodimer_goal, hairpin_goal)
+
+    
 
         
