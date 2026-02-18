@@ -10,7 +10,7 @@ class FilterFail(Exception):
     '''just passes it silently. No need to cause any stink'''
     def __init__(self, fail_type:str):
         self.fail_type = fail_type
-        super().__init__(f'filter faild: {fail_type}')
+        super().__init__(f'filter failed: {fail_type}')
     
 
 class Primer():
@@ -19,8 +19,8 @@ class Primer():
         
         self.tm = primer3.bindings.calc_tm(sequence)
         if self.tm < (desired_tm-diff):
+            # print(self.tm)
             raise FilterFail("lower Tm")
-        
         if self.tm > (desired_tm+diff):
             raise FilterFail("upper Tm")
         

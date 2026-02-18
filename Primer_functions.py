@@ -251,17 +251,21 @@ def make_probes(seq, min_len, snp_id, allele, direction="forward") -> list[Probe
 
             try:                                                            #these need to be user controlled inputs
                 probes.append(Probe(snp_id, allele, trimmed, direction, 70.0, 3.0, -3.0, -3.0))
-            except FilterFail:
+            except FilterFail as e:
+                # print(e)
                 pass
+            #These take one off the left and right to see if it gets us anywhere out of 34 it saved an extra 3
             try:                                                            #these need to be user controlled inputs
                 probes.append(Probe(snp_id, allele, trimmed[:-1], direction, 70.0, 3.0, -3.0, -3.0))
-            except FilterFail:
+            except FilterFail as e:
+                # print(e)
                 pass
             try:                                                            #these need to be user controlled inputs
                 probes.append(Probe(snp_id, allele, trimmed[1:], direction, 70.0, 3.0, -3.0, -3.0))
-            except FilterFail:
+            except FilterFail as e:
+                # print(e)
                 pass
-                # logging.error(f"{snp_id} allele: {allele} had no primers that passed the filtering")
+               
 
     else:
         print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
@@ -284,7 +288,8 @@ def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> 
         
             try:                                                            #these need to be user controlled inputs
                 primers.append(Primer(snp_id, allele, trimmed, direction, 60.0, 3.0, -3.0, -3.0))
-            except FilterFail:
+            except FilterFail as e:
+                # print(e)
                 pass
                 # logging.error(f"{snp_id} allele: {allele} had no primers that passed the filtering")
 
