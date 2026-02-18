@@ -20,7 +20,7 @@ def multiplex_far(close_primers, snp_list, hetero_max = 9):
                 hetro_found = False
                 for primer in (close_primers + all_good_fars): #compare this far primer against all close and already found far primers
 
-                    het = primer3.calc_heterodimer(far.primer_sequence, primer.primer_sequence) # calculate it's heterodimer value every other primer far and close
+                    het = primer3.calc_heterodimer(far.sequence, primer.sequence) # calculate it's heterodimer value every other primer far and close
                     if het.dg < hetero_max*-1000 and het.tm > 40:#it only fails if it has a delta gibbs lower than the max AND the dimer will happen at temp that will bother us
                         hetro_found = True 
                         break #stop checking early
@@ -78,7 +78,7 @@ def multiplex_close(big_list: list[list[Primer]], heterodimer_max = 50.0):
         """
         This function was made to cut down on the noise that comes from calling the primer calc_heterodimer function
         """
-        return primer3.calc_heterodimer(get_primer(left, leftPrimer).primer_sequence, get_primer(right).primer_sequence)
+        return primer3.calc_heterodimer(get_primer(left, leftPrimer).sequence, get_primer(right).sequence)
 
 
     def find_best_primer(allele):

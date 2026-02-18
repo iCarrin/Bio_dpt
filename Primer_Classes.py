@@ -4,34 +4,44 @@ def calc_gc_content(sequence: str):
     for nucleotide in sequence:
         if nucleotide == 'G' or nucleotide == 'C':
             gc_total += 1
-    return gc_total/len(sequence)
+    return round(gc_total/len(sequence), 2)
 
 class FilterFail(Exception):
     '''just passes it silently. No need to cause any stink'''
-    pass
+    def __init__(self, fail_type:str):
+        self.fail_type = fail_type
+        super().__init__(f'filter faild: {fail_type}')
     
 
 class Primer():
 
-    def __init__(self, snp_id, allele, primer,  direction, desired_tm: float = 60.0, diff: float = 3.0, homodimer_goal: float = -3.0, hairpin_goal: float = -3.0):
+    def __init__(self, snp_id, allele, sequence, direction, desired_tm: float = 60.0, diff: float = 3.0, homodimer_goal: float = -3.0, hairpin_goal: float = -3.0):
         
-        self.tm = primer3.bindings.calc_tm(primer)
+        self.tm = primer3.bindings.calc_tm(sequence)
         if self.tm < (desired_tm-diff):
-            raise FilterFail
+            raise FilterFail("lower Tm")
+        
         if self.tm > (desired_tm+diff):
-            raise FilterFail
-        self.__homodimer_thermo = primer3.bindings.calc_homodimer(primer)
-        if self.__homodimer_thermo.dg < homodimer_goal* 1000 and self.__homodimer_thermo.tm > desired_tm-diff-20:
-            raise FilterFail
-        self.__hairpin_thermo = primer3.bindings.calc_hairpin(primer)
-        if self.__hairpin_thermo.dg < hairpin_goal* 1000 and self.__hairpin_thermo.tm > desired_tm-diff-20:
-            raise FilterFail
+            raise FilterFail("upper Tm")
+        
+        __homodimer_thermo = primer3.bindings.calc_homodimer(sequence)
+        self.homodimer_tm = __homodimer_thermo.tm
+        self.homodimer_dg = __homodimer_thermo.dg
+        if self.homodimer_dg < homodimer_goal* 1000 and self.homodimer_tm > desired_tm-diff-20:
+            raise FilterFail("homodimer")
+        
+        __hairpin_thermo = primer3.bindings.calc_hairpin(sequence)
+        self.hairpin_tm = __hairpin_thermo.tm
+        self.hairpin_dg = __hairpin_thermo.dg
+        if self.hairpin_dg < hairpin_goal* 1000 and self.hairpin_tm > desired_tm-diff-20:
+            raise FilterFail("hairpin")
+        
         self.snpID = snp_id
         self.allele = allele
         self.direction = direction
-        self.primer_sequence = primer #this is the primer length
-        self.length = len(primer)
-        self.gc_content = calc_gc_content(primer)
+        self.sequence = sequence #this is the primer length
+        self.length = len(sequence)
+        self.gc_content = calc_gc_content(sequence)
         self.rank = ""
     
     # not sure how to make this better than just calling hairpin_thermo.tm
@@ -51,12 +61,12 @@ class Primer():
 
         
 class Probe(Primer):
-    def __init__(self, snp_id, allele, seq, length, direction, desired_tm: float = 60.0, diff: float = 3.0, homodimer_goal: float = -3.0, hairpin_goal: float = -3.0):
-        self.seq = seq
-        if self.seq[0] == "G":
-            raise FilterFail
-        super().__init__(snp_id, allele, seq, length, direction, desired_tm, diff, homodimer_goal, hairpin_goal)
+    # self, snp_id, allele, primer,  direction, desired_tm: float = 60.0, diff: float = 3.0, homodimer_goal: float = -3.0, hairpin_goal: float = -3.0
+    def __init__(self, snp_id, allele, sequence, direction, desired_tm: float = 70.0, diff: float = 3.0, homodimer_goal: float = -3.0, hairpin_goal: float = -3.0):
+        super().__init__(snp_id, allele, sequence, direction, desired_tm, diff, homodimer_goal, hairpin_goal)
 
+        if self.sequence[0] == "G":
+            raise FilterFail("started with G")
     
 
         

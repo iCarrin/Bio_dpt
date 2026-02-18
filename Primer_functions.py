@@ -61,21 +61,21 @@ def introduce_mismatch(primer_sequence: str, fall_back=False) -> str:
 #     return gc_total/len(sequence)
 
 
-def rank_primers(primers: list[Primer], target_tm = 60, target_gc = 50) -> list[dict]:
+def rank_sequences(seqs: list[Primer], target_tm = 60, target_gc = 50) -> list[Primer]:
     """
         Rank primers based on Tm proximity to 62.5Â°C and GC content.
         TODO: Refine ranking criteria.
         - Consider weighting Tm vs. GC scores.
         - Add user-configurable ranking metrics.
         """
-    for primer in primers:
-        tm_score = abs(primer["tm"] - target_tm)
-        gc_score = abs(primer["gc_content"] - target_gc)
-        primer.set_rank(tm_score + gc_score)
+    for sequence in seqs:
+        tm_score = abs(sequence.tm - target_tm)
+        gc_score = abs(sequence.gc_content - target_gc)
+        sequence.set_rank(tm_score + gc_score)
 
-    primers.sort(key=lambda x: x.rank)
+    seqs.sort(key=lambda x: x.rank)
 
-    return primers
+    return seqs
 
 
 
@@ -154,7 +154,7 @@ def rank_primers(primers: list[Primer], target_tm = 60, target_gc = 50) -> list[
 #     # total_fails = [f"low temp fails: {ltm_fail_count}", f"high temp fails: {htm_fail_count}", f"homodimer fails: {homo_fail_count}", f"hairpin fails: {hair_fail_count}"]
   
 #     total_fails_ints = [ltm_fail_count, htm_fail_count, homo_fail_count, hair_fail_count]
-#     result = rank_primers(allele_phair)
+#     result = rank_sequences(allele_phair)
 
 #     return (result, total_fails_ints)
 
@@ -216,7 +216,7 @@ def generate_allele_specific_probes(snp_json: list[dict], min_len: int = 28, max
     all_probes = []
     def make_allele_probes_list(snp_id, allele, sequence, snp_pos):
         #add a check here for length so that make primers doesn't have to.
-        flank_len = max_len//2#this gives the shorter half
+        flank_len = max_len - max_len//2#this gives the longer half
                             #this gives us the longer half so in case we need to drop a g form the 5' end it balances better
         forward = sequence[snp_pos - flank_len : snp_pos+(flank_len)+1]#this gets the largest segment.   
 
@@ -240,7 +240,7 @@ def make_probes(seq, min_len, snp_id, allele, direction="forward") -> list[Probe
     probes = []
 
 
-    if len(seq) >= min_len:   #len(seq) should just be max_len. It only wont be if the seq length is less than max_len (if the sequence is only 10 long then we'll trigger this)
+    if len(seq) >= min_len:   #len(seq) should just be max_len. It only won't be if the seq length is less than min_len (if the sequence is only 10 long then we'll trigger this)
         len_of_the_flank = (len(seq)-min_len)//2
         for length in range(len_of_the_flank+1):#possible bug if the forward mismatch is smaller than the minimum length
                                             #length is 0-max_len
@@ -266,6 +266,9 @@ def make_probes(seq, min_len, snp_id, allele, direction="forward") -> list[Probe
     else:
         print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
         logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
+    
+    probes = rank_sequences(probes, 70)
+    
     return probes
 
 def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> list[dict]: 

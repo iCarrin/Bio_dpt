@@ -173,13 +173,8 @@ def Main():
     primers = generate_allele_specific_probes(snp_df, 28, 32)
     primer_close_end = datetime.now()
     # for primer in primers:
-    #     if primer:
-    #         print("full")
-    #     else:
-    #         print("empty")
-    #     for john in primer:
-    #         print(john.get_names())
-    ###the primers aren't being made. First thought it was primers.append wasn't working but that's not all of it so keep looking
+    #     for allele in primer:
+    #         print(vars(allele))
 
 
     # filt = filter_all_list(primers)
