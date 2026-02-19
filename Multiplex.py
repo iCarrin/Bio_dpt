@@ -11,27 +11,22 @@ def multiplex_far(close_primers, snp_list, hetero_max = 9):
     all_good_fars = [] 
     for close_primer in close_primers: # find each close primer a far primer match
         primer_start = 0 #if we have to generate more far primers we know where we left off along the string
-        close_success = False 
-        while(not close_success):
-
+        while(True):
             possibles, where_we_ended = generate_matching_primers(close_primer, snp_list, primer_start) #start by getting a list of possible close primers
             for far in possibles:#loop every possible primer given
-
-                hetro_found = False
                 for primer in (close_primers + all_good_fars): #compare this far primer against all close and already found far primers
-
                     het = primer3.calc_heterodimer(far.sequence, primer.sequence) # calculate it's heterodimer value every other primer far and close
                     if het.dg < hetero_max*-1000 and het.tm > 40:#it only fails if it has a delta gibbs lower than the max AND the dimer will happen at temp that will bother us
-                        hetro_found = True 
                         break #stop checking early
-
-                if not hetro_found: #only if it got through the check everything loop
+                else: #only if it got through the check everything loop
                     all_good_fars.append(far) # we add it to the final list
-                    close_success = True # and tell the while loop that this close primer has found it's soul mate
+                    # and tell the while loop that this close primer has found it's soul mate
                     break #the far primer is found stop searching the far primer list
                 
-            if not close_success:# if we get out of the for loop and haven't found the close match 
+            else:# if we get out of the for loop and haven't found the close match 
                 primer_start = where_we_ended #increment where we left off and try again
+                continue
+            break
                 
     return all_good_fars
 

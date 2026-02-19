@@ -54,6 +54,8 @@ class Probe(Primer):
         if self.sequence[0] == "G":
             raise FilterFail("started with G")
         super().__init__(snp_id, allele, sequence, direction, desired_tm, diff, homodimer_goal, hairpin_goal, target_gc)
+    def to_list(self,percision):
+        return [ val if  type(val:=self.__getattribute__(i))!=float else round(val,percision)  for i in vars(self)]
     
 
         

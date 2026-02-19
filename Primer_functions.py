@@ -1,7 +1,5 @@
 from Primer_Classes import *
-import re 
 from Bio.Seq import Seq
-import primer3
 import logging
 
 logger = logging.getLogger(__name__)
@@ -9,6 +7,7 @@ logger = logging.getLogger(__name__)
 
 def generate_allele_specific_probes(snp_json: list[dict], min_len: int = 28, max_len: int = 32) -> list[list[Probe]]:
     all_probes = []
+    bad_probes=[]
     def make_allele_probes_list(snp_id, allele, sequence, snp_pos):
         #add a check here for length so that make primers doesn't have to.
         flank_len = max_len - max_len//2#this gives the longer half
@@ -27,8 +26,9 @@ def generate_allele_specific_probes(snp_json: list[dict], min_len: int = 28, max
             all_probes.append(allele_probes)
         else:
             print(f"snp: {snp["snpID"]} allele: {snp["allele"]} didn't make the cut")
+            bad_probes.append(snp)
     
-    return all_probes
+    return all_probes,bad_probes
 
 def make_probes(seq, min_len, snp_id, allele, direction="forward") -> list[Probe]: 
     
@@ -90,7 +90,7 @@ def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> 
 
     else:
         print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
-        logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {seq_length}")
+        logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
     return primers
 
 
@@ -171,8 +171,3 @@ def generate_matching_primers(primer_king, snp_json, primer_start = 0, min_len =
     
     return far_primers, start
 
-# def generate_probe (dna_dict, far_start, probe_start, min_len = 18, max_len = 24)
-#     if not probe_start:
-#         probe_start = dna_dict["position"] - far_start
-
-#         1 - 1500 - 3000
