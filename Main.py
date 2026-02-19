@@ -5,7 +5,6 @@ import re # run 'pip install regex' if not already installed
 import time # to handle rate limiting
 import requests
 from typing import List # for type hinting
-import json
 
 """
 How the app works:
@@ -15,15 +14,6 @@ step 1. Fetch_SNP_Data takes in a list of rsIDs and the length to either side of
     count(allele) number of strands
 
 """
-
-
-
-
-
-
-
-
-
 
 # Ensembl REST API base URL
 ENSEMBL_REST = "https://rest.ensembl.org"
@@ -115,8 +105,6 @@ def Fetch_SNP_Data(rsids: List[str], flank_length: int = 800, use_all = True) ->
             # Position of the SNP relative to the start of the fetched sequence
             rel_pos = flank_length if seq_start > 1 else pos #should just be flanking length
             
-
-
 
             # Step 3: Replace the SNP base with each possible allele to simulate variation
             for allele in wanted_alleles:
