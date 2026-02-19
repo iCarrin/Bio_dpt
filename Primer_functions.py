@@ -1,7 +1,5 @@
 from Primer_Classes import *
-import re 
 from Bio.Seq import Seq
-import primer3
 import logging
 
 logger = logging.getLogger(__name__)
@@ -90,7 +88,7 @@ def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> 
 
     else:
         print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
-        logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {seq_length}")
+        logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
     return primers
 
 
@@ -171,8 +169,3 @@ def generate_matching_primers(primer_king, snp_json, primer_start = 0, min_len =
     
     return far_primers, start
 
-# def generate_probe (dna_dict, far_start, probe_start, min_len = 18, max_len = 24)
-#     if not probe_start:
-#         probe_start = dna_dict["position"] - far_start
-
-#         1 - 1500 - 3000
