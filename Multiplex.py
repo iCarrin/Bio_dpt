@@ -17,7 +17,12 @@ def multiplex_far(close_primers, snp_list):
     
     '''
     all_good_fars = [] 
+    done_snpid = set()
     for close_primer in close_primers: # find each close primer a far primer match
+        if close_primer.snpID in done_snpid:
+            continue
+        else:
+            done_snpid.add(close_primer.snpID)
         for far in generate_matching_primers(close_primer, snp_list):#loop every possible primer given
             for primer in (close_primers + all_good_fars): #compare this far primer against all close and already found far primers
                  # calculate it's heterodimer value every other primer far and close

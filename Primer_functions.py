@@ -14,10 +14,12 @@ def generate_allele_specific_probes(snp_json: list[dict], min_len: int = 28, max
         #this gives us the longer half so in case we need to drop a g form the 5' end it balances better
         forward = sequence[snp_pos - flank_len : snp_pos+(flank_len)+1]#this gets the largest segment.   
         reverse = str(Seq(sequence[snp_pos-flank_len : snp_pos+flank_len+1]).reverse_complement()) #creates a Biopython sequence, gets the reverse complement, and converts is back to a string
-        return (make_probes(forward, min_len, snp_id, allele,index=i))\
+        probes = (make_probes(forward, min_len, snp_id, allele,index=i))\
                 + (make_probes(reverse, min_len, snp_id, allele, "reverse",index=i))
+        
+        probes.sort(key=lambda x: x.rank)
 
-
+        return probes
     for i,snp in enumerate(snp_json):
         allele_probes = make_allele_probes_list(snp["snpID"], snp["allele"], snp["sequence"], snp["position"],i)
         if allele_probes:
@@ -44,13 +46,13 @@ def make_probes(seq, min_len, snp_id, allele, direction="forward",index=0) -> li
             try:                                                            #these need to be user controlled inputs
                 probes.append(Probe(snp_id, allele, trimmed, direction, 70.0, 3.0, -3.0, -3.0))
             except FilterFail as e:
-                # print(e)
+                print(e)
                 pass
             #These take one off the left and right to see if it gets us anywhere out of 34 it saved an extra 3
             try:                                                            #these need to be user controlled inputs
                 probes.append(Probe(snp_id, allele, trimmed[:-1], direction, 70.0, 3.0, -3.0, -3.0))
             except FilterFail as e:
-                # print(e)
+                print(e)
                 pass
             try:                                                            #these need to be user controlled inputs
                 probes.append(Probe(snp_id, allele, trimmed[1:], direction, 70.0, 3.0, -3.0, -3.0))
@@ -62,8 +64,6 @@ def make_probes(seq, min_len, snp_id, allele, direction="forward",index=0) -> li
     else:
         print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
         logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
-    
-    probes.sort(key=lambda x: x.rank)
     
     return probes
 
