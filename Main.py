@@ -1,15 +1,35 @@
 from Primer_functions import *
 from Multiplex import *
+from Primer_Classes import *
 import re # run 'pip install regex' if not already installed
 import time # to handle rate limiting
 import requests
 from typing import List # for type hinting
 import json
 
+"""
+How the app works:
+step 1. Fetch_SNP_Data takes in a list of rsIDs and the length to either side of the SNP location.
+    it then makes an api call for the SNP and gets all alleles associated with it. It then makes 
+    another call to get the DNA strand and puts the different alleles in the SNP location and it 
+    count(allele) number of strands
+
+"""
+
+
+
+
+
+
+
+
+
+
 # Ensembl REST API base URL
 ENSEMBL_REST = "https://rest.ensembl.org"
 
 # https://rest.ensembl.org/variation/homo_sapiens/rs1799971?
+# https://rest.ensembl.org/sequence/region/human/6:154039632..154039692:1
 
 def Fetch_SNP_Data(rsids: List[str], flank_length: int = 800, use_all = True) -> list[dict]:
     """
@@ -86,7 +106,6 @@ def Fetch_SNP_Data(rsids: List[str], flank_length: int = 800, use_all = True) ->
             seq_start = max(1, pos - flank_length)  # 1-based for Ensemble 
             seq_end = pos + flank_length #might run off the end of the chromosome if very unlucky
             seq_url = f"{ENSEMBL_REST}/sequence/region/human/{chrom}:{seq_start}..{seq_end}:1?"
-            # print (f'chrom: {chrom}\nseq_start: {seq_start}\nseq_end: {seq_end}')
             seq_resp = requests.get(seq_url, headers={"Content-Type": "text/plain"})
             
             seq_resp.raise_for_status()
@@ -168,40 +187,37 @@ def Main():
     logger = logging.getLogger(__name__)
     # print(snp_df)
     snp_end = datetime.now()
-    print("startng")
-    primers = generate_allele_specific_primers(snp_df, 18, 24)
+
+    primers = generate_allele_specific_probes(snp_df, 28, 32)
     primer_close_end = datetime.now()
+    # for primer in primers:
+    #     for allele in primer:
+    #         print(vars(allele))
 
-    filt = filter_all_list(primers)
-    filter_end = datetime.now()
 
-    best_primers, fights = multiplex_close(filt)
-    print("fights")
-    print(fights)
+    # filt = filter_all_list(primers)
+    # filter_end = datetime.now()
+
+    best_primers, fights = multiplex_close(primers)
+
     multi_end = datetime.now()
-  
-    # print(generate_matching_primers(best_primers[2], snp_df))
-
+ 
 
     far = multiplex_far(best_primers, snp_df)
-    # print("far")
-    # print(far)
-    far_end = datetime.now()
     
-    for i in range(len(best_primers)):
-        print(best_primers[i])
-        print(far[i])
+    far_end = datetime.now()
+    # for i in range(len(best_primers)):
+    #     print(vars(best_primers[i]))
+    #     print(vars(far[i]))
     
 
     end = datetime.now()
     logger.info(f"allele's run {len(snp_df)}")
     logger.info(f"fetch_snp took : {snp_end - start}")
     logger.info(f"generate_allele_specific_primer took : {primer_close_end - snp_end}")
-    logger.info(f"filter_primers took : {filter_end - primer_close_end}")
-    logger.info(f"multiplexing close took : {multi_end - filter_end}")
+    # logger.info(f"filter_primers took : {filter_end - primer_close_end}")
+    logger.info(f"multiplexing close took : {multi_end - snp_end}")
     logger.info(f"generate far took : {far_end - multi_end}")
     logger.info(f"total time : {end-start}")
-
 if(__name__ == "__main__"):
     Main()
-
