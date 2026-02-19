@@ -9,7 +9,12 @@ def multiplex_far(close_primers, snp_list, hetero_max = 9):
     
     '''
     all_good_fars = [] 
+    done_snpid = set()
     for close_primer in close_primers: # find each close primer a far primer match
+        if close_primer.snpID in done_snpid:
+            continue
+        else:
+            done_snpid.add(close_primer.snpID)
         primer_start = 0 #if we have to generate more far primers we know where we left off along the string
         while(True):
             possibles, where_we_ended = generate_matching_primers(close_primer, snp_list, primer_start) #start by getting a list of possible close primers
