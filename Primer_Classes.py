@@ -15,7 +15,7 @@ class FilterFail(Exception):
 
 class Primer():
 
-    def __init__(self, snp_id, allele, sequence, direction, desired_tm: float = 60.0, diff: float = 3.0, homodimer_goal: float = -3.0, hairpin_goal: float = -3.0):
+    def __init__(self, snp_id, allele, sequence, direction, desired_tm: float = 60.0, diff: float = 3.0, homodimer_goal: float = -3.0, hairpin_goal: float = -3.0, target_gc = 50.0):
         
         self.tm = primer3.bindings.calc_tm(sequence)
         if self.tm < (desired_tm-diff):
@@ -42,21 +42,18 @@ class Primer():
         self.sequence = sequence #this is the primer length
         self.length = len(sequence)
         self.gc_content = calc_gc_content(sequence)
-        self.rank = ""
-    
-
-    def set_rank(self, rank):
-        self.rank = rank
+        self.target_gc = target_gc
+        self.rank = abs(self.tm - desired_tm) + abs(self.gc_content - target_gc)
    
 
         
 class Probe(Primer):
     # self, snp_id, allele, primer,  direction, desired_tm: float = 60.0, diff: float = 3.0, homodimer_goal: float = -3.0, hairpin_goal: float = -3.0
-    def __init__(self, snp_id, allele, sequence, direction, desired_tm: float = 70.0, diff: float = 3.0, homodimer_goal: float = -3.0, hairpin_goal: float = -3.0):
+    def __init__(self, snp_id, allele, sequence, direction, desired_tm: float = 70.0, diff: float = 3.0, homodimer_goal: float = -3.0, hairpin_goal: float = -3.0, target_gc = 50.0):
         self.sequence = sequence
         if self.sequence[0] == "G":
             raise FilterFail("started with G")
-        super().__init__(snp_id, allele, sequence, direction, desired_tm, diff, homodimer_goal, hairpin_goal)
+        super().__init__(snp_id, allele, sequence, direction, desired_tm, diff, homodimer_goal, hairpin_goal, target_gc)
     
 
         

@@ -32,8 +32,7 @@ def multiplex_far(close_primers, snp_list, hetero_max = 9):
                 
             if not close_success:# if we get out of the for loop and haven't found the close match 
                 primer_start = where_we_ended #increment where we left off and try again
-
-        close_success = False #if we find a close match reset the close success and go to the next close primer
+                
     return all_good_fars
 
 

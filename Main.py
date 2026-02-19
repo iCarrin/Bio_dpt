@@ -7,6 +7,24 @@ import requests
 from typing import List # for type hinting
 import json
 
+"""
+How the app works:
+step 1. Fetch_SNP_Data takes in a list of rsIDs and the length to either side of the SNP location.
+    it then makes an api call for the SNP and gets all alleles associated with it. It then makes 
+    another call to get the DNA strand and puts the different alleles in the SNP location and it 
+    count(allele) number of strands
+
+"""
+
+
+
+
+
+
+
+
+
+
 # Ensembl REST API base URL
 ENSEMBL_REST = "https://rest.ensembl.org"
 
