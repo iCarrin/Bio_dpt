@@ -8,32 +8,46 @@ def multiplex_far(close_primers, snp_list, hetero_max = 9):
     Multiplex the far primers against the close primers and any far primers that have already succeeded
     
     '''
-    all_good_fars = [] 
+    all_good_positive_fars = [] 
+    all_good_negative_fars = [] 
     done_snpid = set()
     for close_primer in close_primers: # find each close primer a far primer match
         if close_primer.snpID in done_snpid:
             continue
         else:
             done_snpid.add(close_primer.snpID)
-        primer_start = 0 #if we have to generate more far primers we know where we left off along the string
-        while(True):
-            possibles, where_we_ended = generate_matching_primers(close_primer, snp_list, primer_start) #start by getting a list of possible close primers
-            for far in possibles:#loop every possible primer given
-                for primer in (close_primers + all_good_fars): #compare this far primer against all close and already found far primers
-                    het = primer3.calc_heterodimer(far.sequence, primer.sequence) # calculate it's heterodimer value every other primer far and close
-                    if het.dg < hetero_max*-1000 and het.tm > 40:#it only fails if it has a delta gibbs lower than the max AND the dimer will happen at temp that will bother us
-                        break #stop checking early
-                else: #only if it got through the check everything loop
-                    all_good_fars.append(far) # we add it to the final list
-                    # and tell the while loop that this close primer has found it's soul mate
-                    break #the far primer is found stop searching the far primer list
+         #if we have to generate more far primers we know where we left off along the string
+        for direction in ['positive', 'negative']:
+            primer_start = 0
+            while(True):
+                try:
+                    possibles, where_we_ended = generate_matching_primers(close_primer, snp_list, primer_start, direction) #start by getting a list of possible close primers
+                except:
+                    print('we should re run this all and try the revers side')
+                for far in possibles:#loop every possible primer given
+                    for primer in (close_primers + all_good_positive_fars + all_good_negative_fars): #compare this far primer against all close and already found far primers
+                        het = primer3.calc_heterodimer(far.sequence, primer.sequence) # calculate it's heterodimer value every other primer far and close
+                        if het.dg < hetero_max*-1000 and het.tm > 40:#it only fails if it has a delta gibbs lower than the max AND the dimer will happen at temp that will bother us
+                            break #stop checking early
+                    else: #only if it got through the check everything loop
+
+                        ### add these as temp variables and run this loop. If they fail ()"you've tried every possible primer. What have you done??")
+                        #raise an exception that  a try except loop will catch, flip the sides and try again over writing the temp holders.
+                        #once done append those temp variables to the real lists.
+
+                        if direction == 'positive': 
+                            all_good_positive_fars.append(far) # we add it to the final list
+                        else: 
+                            all_good_negative_fars.append(far) # we add it to the final list
+                        # and tell the while loop that this close primer has found it's soul mate
+                        break #the far primer is found stop searching the far primer list
+                    
+                else:# if we get out of the for loop and haven't found the close match 
+                    primer_start = where_we_ended #increment where we left off and try again
+                    continue
+                break
                 
-            else:# if we get out of the for loop and haven't found the close match 
-                primer_start = where_we_ended #increment where we left off and try again
-                continue
-            break
-                
-    return all_good_fars
+    return (all_good_negative_fars, all_good_positive_fars)
 
 
 
@@ -122,7 +136,7 @@ def multiplex_close(big_list: list[list[Primer]], heterodimer_max = 50.0):
     for left, right in allele_combos:
         #log all of the problems
         het =  get_heterodimer(left, right)
-        if het.dg > heterodimer_max or het.tm > 40:
+        if het.dg > heterodimer_max and het.tm > 40:
             #since we're using the combo list we update both locations when finding a problem
             alleles_prob_count[left] += 1                     
             alleles_prob_count[right] += 1
