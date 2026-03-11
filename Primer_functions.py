@@ -95,6 +95,7 @@ def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> 
 
 
 def generate_matching_primers(primer_king, snp_json, primer_start = 0, direction = 'positive', min_len = 18, max_len = 24, min_dist: int = 50, max_dist: int = 250): 
+def generate_matching_primers(primer_king, snp_json, primer_start = 0, direction = 'positive', min_len = 18, max_len = 24, min_dist: int = 50, max_dist: int = 250): 
     """
         Generate matching primers for top  allele-specific primers.
         TODO: Optimize primer pairing.
@@ -135,6 +136,8 @@ def generate_matching_primers(primer_king, snp_json, primer_start = 0, direction
         #                           |___________/     
     else:
         raise Exception("no direction given. How did we get here?")
+    
+
 
     #get some far primers for primer_king, but only the best (use strict mode). if the filter fails the while loop should try again farther down the line
     #if the ones that pass don't pass the heterodimer then primer_start should be updated and the whole thing tried again.

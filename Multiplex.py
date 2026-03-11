@@ -18,6 +18,8 @@ def multiplex_far(close_primers, snp_list):
     '''
     all_good_positive_fars = [] 
     all_good_negative_fars = [] 
+    all_good_positive_fars = [] 
+    all_good_negative_fars = [] 
     done_snpid = set()
     for close_primer in close_primers: # find each close primer a far primer match
         if close_primer.snpID in done_snpid:
