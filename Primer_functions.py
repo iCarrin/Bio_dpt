@@ -1,26 +1,25 @@
 from Primer_Classes import *
 from Bio.Seq import Seq
 import logging
+from typing import Generator
 
 logger = logging.getLogger(__name__)
 
 
 def generate_allele_specific_probes(snp_json: list[dict], min_len: int = 28, max_len: int = 32) -> list[list[Probe]]:
     all_probes = []
-    def make_allele_probes_list(snp_id, allele, sequence, snp_pos):
+    def make_allele_probes_list(snp_id, allele, sequence, snp_pos,i):
         #add a check here for length so that make primers doesn't have to.
         flank_len = max_len - max_len//2#this gives the longer half
-                            #this gives us the longer half so in case we need to drop a g form the 5' end it balances better
+        #this gives us the longer half so in case we need to drop a g form the 5' end it balances better
         forward = sequence[snp_pos - flank_len : snp_pos+(flank_len)+1]#this gets the largest segment.   
-
         reverse = str(Seq(sequence[snp_pos-flank_len : snp_pos+flank_len+1]).reverse_complement()) #creates a Biopython sequence, gets the reverse complement, and converts is back to a string
+        return (make_probes(forward, min_len, snp_id, allele,index=i))\
+                + (make_probes(reverse, min_len, snp_id, allele, "reverse",index=i))
 
-        return (make_probes(forward, min_len, snp_id, allele))\
-                + (make_probes(reverse, min_len, snp_id, allele, "reverse"))
 
-
-    for snp in snp_json:
-        allele_probes = make_allele_probes_list(snp["snpID"], snp["allele"], snp["sequence"], snp["position"])
+    for i,snp in enumerate(snp_json):
+        allele_probes = make_allele_probes_list(snp["snpID"], snp["allele"], snp["sequence"], snp["position"],i)
         if allele_probes:
             all_probes.append(allele_probes)
         else:
@@ -28,7 +27,7 @@ def generate_allele_specific_probes(snp_json: list[dict], min_len: int = 28, max
     
     return all_probes
 
-def make_probes(seq, min_len, snp_id, allele, direction="forward") -> list[Probe]: 
+def make_probes(seq, min_len, snp_id, allele, direction="forward",index=0) -> list[Probe]: 
     
     probes = []
 
@@ -68,9 +67,8 @@ def make_probes(seq, min_len, snp_id, allele, direction="forward") -> list[Probe
     
     return probes
 
-def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> list[dict]: 
+def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> Generator[Primer]: 
     
-    primers = []
     if len(seq) >= min_len:   #len(seq) should just be max_len. It only wont be if the seq length is less than max_len (if the sequence is only 10 long then we'll trigger this)
         for length in range(max_len-min_len):#possible bug if the forward mismatch is smaller than the minimum length
                                             #length is 0-max_len
@@ -80,16 +78,18 @@ def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> 
             #and then a list in that dictionary of sequence and lengths. Storing the name over and over seems redundant ID
         
             try:                                                            #these need to be user controlled inputs
-                primers.append(Primer(snp_id, allele, trimmed, direction, 60.0, 3.0, -3.0, -3.0))
+                # primers.append(Primer(snp_id, allele, trimmed, direction, 60.0, 3.0, -3.0, -3.0))
+                yield Primer(snp_id, allele, trimmed, direction, 60.0, 3.0, -3.0, -3.0)
             except FilterFail as e:
                 # print(e)
                 pass
                 # logging.error(f"{snp_id} allele: {allele} had no primers that passed the filtering")
-
+    
     else:
         print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
         logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
-    return primers
+        raise ValueError
+    # return primers
 
 
 
@@ -105,13 +105,11 @@ def generate_matching_primers(primer_king, snp_json, primer_start = 0, min_len =
         raise Exception("your sequence is so short it won't allow for even 1 primer to be maid. " \
         "Lower your min distance to have the API call for a longer string")
     snp_dict = {}
-    found = False
     for snp in snp_json:
-        if  snp['snpID'] == primer_king.snpID: # we only search for a matching SNP because we aren't even using the allele section    
+        if snp['snpID'] == primer_king.snpID: # we only search for a matching SNP because we aren't even using the allele section    
             snp_dict = snp
-            found = True
             break   
-    if found == False:
+    else:
         raise Exception(f"there is no matching entry in the Json list for {primer_king['snpID']}")
    
     
@@ -139,33 +137,22 @@ def generate_matching_primers(primer_king, snp_json, primer_start = 0, min_len =
     else:
         raise Exception("no direction given. How did we get here?")
     
-    passes = False
     start = primer_start
 
     #get some far primers for primer_king, but only the best (use strict mode). if the filter fails the while loop should try again farther down the line
     #if the ones that pass don't pass the heterodimer then primer_start should be updated and the whole thing tried again.
-    while(not passes):
+    while(True):
         # the reverse complement flips the sequence each time so we can iterate over each one the same way. Researchers expect DNA to come in the forward
         # format even if it was reversed in real life, so no need to flip it back. The note that it should be reversed is enough.
         # each one will walk back from the right side 
         trial_snip = far_sequence[-(max_len+start) : -start or None] # this takes a chunk to feed into a primer generator
         
-      
         try:#filter strict mode will throw an error so we use try except
-            far_primers = make_primers(trial_snip, min_len, max_len, primer_king.snpID, primer_king.allele, direction)
-            # filt_far, _ = filter_one_list(far_primers, temp, 2, strict_mode=True)\
-            if far_primers:
-                passes = True
-            else:
-                start += 6
+            yield from make_primers(trial_snip, min_len, max_len, primer_king.snpID, primer_king.allele, direction)
+            start += 6
+
         except ValueError as e:
-            print(e)
-            logger.warning(e)
-            start += 6 #extensive testing shows that 6 is the fastest step to run (See readme for link)
-            if start > max_dist-max_len:
-                logger.critical(f'{primer_king.snpID} allele {primer_king.allele} had no useable far primers')
-                raise Exception("you've tried every possible primer. What have you done??")
-        
-    
-    return far_primers, start
+            logger.critical(f'{primer_king.snpID} allele {primer_king.allele} had no useable far primers')
+            raise Exception("you've tried every possible primer. What have you done??")
+            
 
