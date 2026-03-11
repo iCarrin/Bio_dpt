@@ -7,7 +7,7 @@ def func(primer1,primer2,heterodimer_max = 50.0,tm_max=40,memo={}):
     if (key:=tuple(sorted((primer1,primer2)))) in memo:
         return memo[key]
     result=primer3.calc_heterodimer(primer1,primer2)
-    ans=result.dg > heterodimer_max or result.tm > tm_max
+    ans=result.dg > heterodimer_max and result.tm > tm_max
     memo[key]= ans
     return ans
 
@@ -16,7 +16,8 @@ def multiplex_far(close_primers, snp_list):
     Multiplex the far primers against the close primers and any far primers that have already succeeded
     
     '''
-    all_good_fars = [] 
+    all_good_positive_fars = [] 
+    all_good_negative_fars = [] 
     done_snpid = set()
     for close_primer in close_primers: # find each close primer a far primer match
         if close_primer.snpID in done_snpid:
@@ -24,16 +25,26 @@ def multiplex_far(close_primers, snp_list):
         else:
             done_snpid.add(close_primer.snpID)
 
-        for far in generate_matching_primers(close_primer, snp_list):#loop every possible primer given
-            for primer in (close_primers + all_good_fars): #compare this far primer against all close and already found far primers
-                 # calculate it's heterodimer value every other primer far and close
-                if func(far.sequence, primer.sequence):#it only fails if it has a delta gibbs lower than the max AND the dimer will happen at temp that will bother us
-                    break #stop checking early
-            else: #only if it got through the check everything loop
-                all_good_fars.append(far) # we add it to the final list
-                # and tell the while loop that this close primer has found it's soul mate
-                break #the far primer is found stop searching the far primer list
-    return all_good_fars
+         #if we have to generate more far primers we know where we left off along the string
+        for direction in ['positive', 'negative']:
+            for far in generate_matching_primers(close_primer, snp_list):#loop every possible primer given
+                for primer in (close_primers + all_good_positive_fars + all_good_negative_fars): #compare this far primer against all close and already found far primers
+                    # calculate it's heterodimer value every other primer far and close
+                    if func(far.sequence, primer.sequence):#it only fails if it has a delta gibbs lower than the max AND the dimer will happen at temp that will bother us
+                        break #stop checking early
+                    else: #only if it got through the check everything loop
+
+                        ### add these as temp variables and run this loop. If they fail ()"you've tried every possible primer. What have you done??")
+                        #raise an exception that  a try except loop will catch, flip the sides and try again over writing the temp holders.
+                        #once done append those temp variables to the real lists.
+
+                        if direction == 'positive': 
+                            all_good_positive_fars.append(far) # we add it to the final list
+                        else: 
+                            all_good_negative_fars.append(far) # we add it to the final list
+                        # and tell the while loop that this close primer has found it's soul mate
+                        break #the far primer is found stop searching the far primer list
+    return (all_good_negative_fars, all_good_positive_fars)
 
 
 
@@ -118,6 +129,7 @@ def multiplex_close(big_list: list[list[Primer]]):
     for left, right in allele_combos:
         #log all of the problems
         if get_heterodimer(left, right):
+            
             #since we're using the combo list we update both locations when finding a problem
             alleles_prob_count[left] += 1                     
             alleles_prob_count[right] += 1
@@ -144,141 +156,3 @@ def multiplex_close(big_list: list[list[Primer]]):
     # multiplexing took : 0:00:05.508837
     return out_list, fighting_alleles
 
-def multiplex_close2(big_list: list[list[Primer]], heterodimer_max = 50.0):
-    print("start")
-    primer_sequences = [
-    [p.sequence for p in allele_list]
-    for allele_list in big_list
-    ]
-    print("finish primer seq")
-    calc_heterodimer = primer3.calc_heterodimer
-
-    hetero_cache = {}
-
-    for a1, a2 in combinations(range(len(primer_sequences)), 2):
-        print(a1,a2)
-        primers1 = primer_sequences[a1]
-        primers2 = primer_sequences[a2]
-        for s1, s2 in product(primers1, primers2):
-            key = (s1, s2) if s1 < s2 else (s2, s1)
-            if key not in hetero_cache:
-                result = calc_heterodimer(s1, s2)
-                hetero_cache[key] = (
-                    result.dg > heterodimer_max or result.tm > 40
-                )
-                            
-    print("finish hetero_cashe")
-    conflicts = {}
-    for a1, a2 in combinations(range(len(primer_sequences)), 2):
-            print(a1,a2)
-            primers1 = primer_sequences[a1]
-            primers2 = primer_sequences[a2]
-            for (i, s1), (j, s2) in product(enumerate(primers1), enumerate(primers2)):
-                    key = (s1, s2) if s1 < s2 else (s2, s1)
-                    if hetero_cache[key]:
-                        conflicts.setdefault((a1,i), set()).add((a2,j))
-                        conflicts.setdefault((a2,j), set()).add((a1,i))
-
-    print("finished conficts")
-    selected = [0]*len(big_list)
-
-    for allele in range(len(big_list)):
-
-        best = None
-        best_score = float("inf")
-
-        for primer_i in range(len(big_list[allele])):
-
-            score = 0
-
-            for other_allele in range(allele):
-
-                other_primer = selected[other_allele]
-
-                if (allele,primer_i) in conflicts:
-                    if (other_allele,other_primer) in conflicts[(allele,primer_i)]:
-                        score += 1
-
-            if score < best_score:
-                best_score = score
-                best = primer_i
-
-        selected[allele] = best
-    print("finish selected")
-    out_list = [
-    big_list[a][p]
-    for a,p in enumerate(selected)
-    ]   
-    return out_list,conflicts
-
-def multiplex_close3(big_list: list[list[Primer]], heterodimer_max = 50.0):
-    print("start")
-    num_alleles = len(big_list)
-
-    # Create integer masks for each primer
-    # conflicts_mask[allele][primer_index] = integer where bit j set if conflicts with primer j of other alleles
-    conflicts_mask = [
-        [0]*len(allele) for allele in big_list
-    ]
-
-    # Flatten all primers to assign unique IDs for bits
-    primer_id_map = {}  # (allele, primer_index) -> unique id
-    id_counter = 0
-    for a, allele in enumerate(big_list):
-        for i in range(len(allele)):
-            primer_id_map[(a,i)] = id_counter
-            id_counter += 1
-
-    # print("start hetero cashe")
-    # Precompute sequences
-    primer_sequences = [[p.sequence for p in allele] for allele in big_list]
-    calc_heterodimer = primer3.calc_heterodimer
-    hetero_cache = {}
-
-    for a1, a2 in combinations(range(num_alleles), 2):
-        print(a1,a2)
-        primers1 = primer_sequences[a1]
-        primers2 = primer_sequences[a2]
-
-        for (i, s1), (j, s2) in product(enumerate(primers1), enumerate(primers2)):
-            key = (s1, s2) if s1 < s2 else (s2, s1)
-            if key not in hetero_cache:
-                result = calc_heterodimer(s1, s2)
-                hetero_cache[key] = (result.dg > heterodimer_max or result.tm > 40)
-
-            if hetero_cache[key]:
-                id1 = primer_id_map[(a1,i)]
-                id2 = primer_id_map[(a2,j)]
-                conflicts_mask[a1][i] |= 1 << id2
-                conflicts_mask[a2][j] |= 1 << id1
-    # print("finish hetero cashe")
-    selected = [0]*num_alleles
-    current_mask = 0
-
-    for a, allele in enumerate(big_list):
-        best = None
-        min_conflicts = float("inf")
-        
-        for i in range(len(allele)):
-            conflicts = (current_mask & conflicts_mask[a][i]).bit_count()
-            if conflicts < min_conflicts:
-                min_conflicts = conflicts
-                best = i
-                
-        selected[a] = best
-        # Update current mask with the newly selected primer
-        current_mask |= 1 << primer_id_map[(a,best)]
-    
-    out_list = [big_list[a][p] for a, p in enumerate(selected)]
-
-    fighting_alleles = []
-    for a1, a2 in combinations(range(num_alleles), 2):
-        p1 = selected[a1]
-        p2 = selected[a2]
-        id2 = primer_id_map[(a2,p2)]
-        if conflicts_mask[a1][p1] & (1 << id2):
-            fighting_alleles.append((
-                f"{big_list[a1][p1].snpID} : {big_list[a1][p1].allele}",
-                f"{big_list[a2][p2].snpID} : {big_list[a2][p2].allele}"
-            ))
-    return out_list,fighting_alleles
