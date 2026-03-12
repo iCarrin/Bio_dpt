@@ -1,9 +1,77 @@
-from Primer_Classes import *
+from Primer_Classes import Primer, Probe, FilterFail
 from Bio.Seq import Seq
 import logging
 from typing import Generator
 
 logger = logging.getLogger(__name__)
+
+def make_probes(seq, min_len, snp_id, allele, direction="forward",index=0) -> list[Probe]:
+    probes = []
+
+    if len(seq) >= min_len:   #len(seq) should just be max_len. It only won't be if the seq length is less than min_len (if the sequence is only 10 long then we'll trigger this)
+        len_of_the_flank = (len(seq)-min_len)//2
+        cof = [0,0,0,0,0,0] #Count Of Failure
+        rff = ["TM too low", "Tm Too high", "Homodimer", "Hairpin", "Started with a 'G'", "Probes"] # Reasons For Failure
+        for length in range(len_of_the_flank):#possible bug if the forward mismatch is smaller than the minimum length
+                                            #length is 0-max_len
+            trimmed = seq[length: -length if length != 0 else None]#this is assuming that the seq given is already the maximum length. 
+            # If given a crazy long string it will start at "length" and give the rest of the string
+            #take this part out of the loop, so we can have one dictionary that says the SNP ID and ALLELE and Direction, 
+            #and then a list in that dictionary of sequence and lengths. Storing the name over and over seems redundant ID
+
+            
+                                     #These take one off the left and right to see if it gets us anywhere out of 34 it saved an extra 3
+            for segment in [trimmed, trimmed[:-1], trimmed[1:]]:
+                cof[5] += 1 
+                try:                                                            #these need to be user controlled inputs
+                    probes.append(Probe(snp_id, allele, segment, direction, 70.0, 3.0, -3.0, -3.0))
+                except FilterFail as e:
+                    match e.fail_type:
+                        case "lower Tm":
+                            cof[0] += 1
+                        case "upper Tm":
+                            cof[1] += 1
+                        case "homodimer":
+                            cof[2] += 1
+                        case "hairpin":
+                            cof[3] += 1
+                        case "started with G":
+                            cof[4] += 1
+                    pass
+
+    else:
+ 
+        print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
+        logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
+        
+    '''probe error messages (simple and extensive)'''
+    # br = cof.index(max(cof[:-1]))
+    # print(f'snp: {snp_id} allele: {allele} {cof[5]} {rff[5]}, {cof[0]+cof[1]+cof[2]+cof[3]+cof[4]} misses, {cof[br]} were {rff[br]}')
+    # print(f'snp: {snp_id} allele: {allele} {cof[5]} {rff[5]}, {cof[0]+cof[1]+cof[2]+cof[3]+cof[4]} misses, {cof[0]} were {rff[0]}, {cof[1]} were {rff[1]}, {cof[2]} were {rff[2]}, {cof[3]} were {rff[3]}, {cof[4]} were {rff[4]}')
+    return probes
+def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> Generator[Primer]: 
+    
+    if len(seq) >= min_len:   #len(seq) should just be max_len. It only wont be if the seq length is less than max_len (if the sequence is only 10 long then we'll trigger this)
+        for length in range(max_len-min_len+1):#possible bug if the forward mismatch is smaller than the minimum length
+                                            #length is 0-max_len
+            trimmed = seq[length:]#this is assuming that the seq given is already the maximum length. 
+            # If given a crazy long string it will start at "length" and give the rest of the string
+            #take this part out of the loop, so we can have one dictionary that says the SNP ID and ALLELE and Direction, 
+            #and then a list in that dictionary of sequence and lengths. Storing the name over and over seems redundant ID
+        
+            try:                                                            #these need to be user controlled inputs
+                # primers.append(Primer(snp_id, allele, trimmed, direction, 60.0, 3.0, -3.0, -3.0))
+                yield Primer(snp_id, allele, trimmed, direction, 60.0, 3.0, -3.0, -3.0)
+            except FilterFail as e:
+                # print(e)
+                pass
+                # logging.error(f"{snp_id} allele: {allele} had no primers that passed the filtering")
+    
+    else:
+        print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
+        logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
+        raise ValueError
+    # return primers
 
 
 def generate_allele_specific_probes(snp_json: list[dict], min_len: int = 28, max_len: int = 32) -> list[list[Probe]]:
@@ -26,81 +94,22 @@ def generate_allele_specific_probes(snp_json: list[dict], min_len: int = 28, max
             all_probes.append(allele_probes)
         else:
             print(f"snp: {snp["snpID"]} allele: {snp["allele"]} didn't make the cut")
-    
+    if not all_probes:
+        raise ValueError("There were no probes found")
     return all_probes
 
-def make_probes(seq, min_len, snp_id, allele, direction="forward",index=0) -> list[Probe]: 
-    
-    probes = []
-
-
-    if len(seq) >= min_len:   #len(seq) should just be max_len. It only won't be if the seq length is less than min_len (if the sequence is only 10 long then we'll trigger this)
-        len_of_the_flank = (len(seq)-min_len)//2
-        for length in range(len_of_the_flank+1):#possible bug if the forward mismatch is smaller than the minimum length
-                                            #length is 0-max_len
-            trimmed = seq[length: -length if length != 0 else None]#this is assuming that the seq given is already the maximum length. 
-            # If given a crazy long string it will start at "length" and give the rest of the string
-            #take this part out of the loop, so we can have one dictionary that says the SNP ID and ALLELE and Direction, 
-            #and then a list in that dictionary of sequence and lengths. Storing the name over and over seems redundant ID
-
-            try:                                                            #these need to be user controlled inputs
-                probes.append(Probe(snp_id, allele, trimmed, direction, 70.0, 3.0, -3.0, -3.0))
-            except FilterFail as e:
-                print(e)
-                pass
-            #These take one off the left and right to see if it gets us anywhere out of 34 it saved an extra 3
-            try:                                                            #these need to be user controlled inputs
-                probes.append(Probe(snp_id, allele, trimmed[:-1], direction, 70.0, 3.0, -3.0, -3.0))
-            except FilterFail as e:
-                print(e)
-                pass
-            try:                                                            #these need to be user controlled inputs
-                probes.append(Probe(snp_id, allele, trimmed[1:], direction, 70.0, 3.0, -3.0, -3.0))
-            except FilterFail as e:
-                # print(e)
-                pass
-               
-
-    else:
-        print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
-        logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
-    
-    return probes
-
-def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> Generator[Primer]: 
-    
-    if len(seq) >= min_len:   #len(seq) should just be max_len. It only wont be if the seq length is less than max_len (if the sequence is only 10 long then we'll trigger this)
-        for length in range(max_len-min_len):#possible bug if the forward mismatch is smaller than the minimum length
-                                            #length is 0-max_len
-            trimmed = seq[length:]#this is assuming that the seq given is already the maximum length. 
-            # If given a crazy long string it will start at "length" and give the rest of the string
-            #take this part out of the loop, so we can have one dictionary that says the SNP ID and ALLELE and Direction, 
-            #and then a list in that dictionary of sequence and lengths. Storing the name over and over seems redundant ID
-        
-            try:                                                            #these need to be user controlled inputs
-                # primers.append(Primer(snp_id, allele, trimmed, direction, 60.0, 3.0, -3.0, -3.0))
-                yield Primer(snp_id, allele, trimmed, direction, 60.0, 3.0, -3.0, -3.0)
-            except FilterFail as e:
-                # print(e)
-                pass
-                # logging.error(f"{snp_id} allele: {allele} had no primers that passed the filtering")
-    
-    else:
-        print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
-        logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
-        raise ValueError
-    # return primers
 
 
 
 
-def generate_matching_primers(primer_king, snp_json, primer_start = 0, direction = 'positive', min_len = 18, max_len = 24, min_dist: int = 50, max_dist: int = 250): 
+def generate_matching_primers(primer_king, snp_json, direction, flipped, primer_start = 0, min_len = 18, max_len = 24, min_dist: int = 50, max_dist: int = 250): 
     """
         Generate matching primers for top  allele-specific primers.
         TODO: Optimize primer pairing.
         - Use primer3-py's designPrimers for more efficient pairing.
         - Add checks for primer pair compatibility (e.g., Tm difference < 5Â°C).
     """
+    
     if len(snp_json[0]['sequence']) < (min_dist+17)/2:
         raise Exception("your sequence is so short it won't allow for even 1 primer to be maid. " \
         "Lower your min distance to have the API call for a longer string")
@@ -111,28 +120,42 @@ def generate_matching_primers(primer_king, snp_json, primer_start = 0, direction
             snp_dict = snp
             break   
     else:
-        raise Exception(f"there is no matching entry in the Json list for {primer_king['snpID']}")
+        raise Exception(f"there is no matching entry in the Json list for {primer_king.snpID}")
    
     
     middle = snp_dict['position']
     whole_sequence = snp_dict['sequence']
-    
+
+ 
 
     #get the far sequence and reverse complement is if necessary
-    if direction == "positive":
-        seq_pre_rev_comp = whole_sequence[middle+min_dist:middle+max_dist]#everything from snp (middle) plus start dist cutting off at max if necessary (end is exclusive so +1)
-        far_sequence = str(Seq(seq_pre_rev_comp).reverse_complement()) #change to sequence object, reverse complement it, and change it back to string
-        #                                         _______  
-        #                      _________          \______\_
-        #  What we're given _/__________|           \_______\ what we make 
-        #_________________/_____________|=====================("===" means reverse complement DNA)
+    if direction == "forward":
+        far_sequence = whole_sequence[middle+min_dist:middle+max_dist]#everything from snp (middle) plus start dist cutting off at max if necessary (end is exclusive so +1)
+        if not flipped:
+            far_sequence = str(Seq(far_sequence).reverse_complement()) #change to sequence object, reverse complement it, and change it back to string
+
+    
+        '''                                  _______  
+                                             |______\_
+                                             |________\ what we make eventually 
+        _________________________|___________=====================("===" means reverse complement DNA)
+                                SNP                  All the way to max_dist gets reverse complemented
+                                    min_dist away
         
-    elif direction == "negative":
+        '''
+        
+    elif direction == "reverse":
         far_sequence = whole_sequence[middle-max_dist:middle-min_dist-1]
-        #___________________________
-        #     ___/______/           ====================== ("===" means reverse complement DNA)
-        #    /_______/ What makin'  |_____________/ what we have (reverse close)
-        #                           |___________/     
+        if flipped:
+            far_sequence = str(Seq(far_sequence).reverse_complement())
+        '''
+                                   SNP
+        ____________________________|____________________________
+                     __/______|           
+        What makin'./_________|  
+                        Go min_dist away 
+        and take up to Max_dist to use in primer making   
+        '''
     else:
         raise Exception("no direction given. How did we get here?")
 

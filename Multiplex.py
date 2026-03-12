@@ -1,13 +1,14 @@
-from Primer_Classes import *
+from Primer_Classes import Primer, Probe
 import primer3
-from itertools import combinations,product
+from itertools import combinations,chain
 from Primer_functions import generate_matching_primers
 
-def func(primer1,primer2,heterodimer_max = 50.0,tm_max=40,memo={}):
+def check_heterodimer(primer1,primer2,heterodimer_max = 50.0,tm_max=40,memo=None):
+    if memo is None: memo = {}
     if (key:=tuple(sorted((primer1,primer2)))) in memo:
         return memo[key]
     result=primer3.calc_heterodimer(primer1,primer2)
-    ans=result.dg > heterodimer_max and result.tm > tm_max
+    ans=result.dg > heterodimer_max * 1000 and result.tm > tm_max
     memo[key]= ans
     return ans
 
@@ -16,35 +17,65 @@ def multiplex_far(close_primers, snp_list):
     Multiplex the far primers against the close primers and any far primers that have already succeeded
     
     '''
-    all_good_positive_fars = [] 
-    all_good_negative_fars = [] 
+    pos_far_primers = [] 
+    neg_far_primers = [] 
+    temp_pos = None
+    temp_neg = None
     done_snpid = set()
+    snps_to_remove = set()
     for close_primer in close_primers: # find each close primer a far primer match
         if close_primer.snpID in done_snpid:
             continue
-        else:
-            done_snpid.add(close_primer.snpID)
+        done_snpid.add(close_primer.snpID)
 
-         #if we have to generate more far primers we know where we left off along the string
-        for direction in ['positive', 'negative']:
-            for far in generate_matching_primers(close_primer, snp_list):#loop every possible primer given
-                for primer in (close_primers + all_good_positive_fars + all_good_negative_fars): #compare this far primer against all close and already found far primers
-                    # calculate it's heterodimer value every other primer far and close
-                    if func(far.sequence, primer.sequence):#it only fails if it has a delta gibbs lower than the max AND the dimer will happen at temp that will bother us
-                        break #stop checking early
+        temp_pos = None
+        temp_neg = None
+        flipped = False
+        count = 0
+        while True:
+            for direction in ['forward', 'reverse']:
+                count +=1
+                if count >2:
+                    print(f"{count} times through!!!!!!!")
+               
+                for far in generate_matching_primers(close_primer, snp_list, direction, flipped):#loop every possible primer given 
+                    #loop 4
+                    for primer in chain(close_primers, pos_far_primers, neg_far_primers): #compare this far primer against all close and already found far primers
+                        # calculate it's heterodimer value every other primer far and close
+                        if check_heterodimer(far.sequence, primer.sequence):#it only fails if it has a delta gibbs lower than the max AND the dimer will happen at temp that will bother us
+                            break #stop checking early
                     else: #only if it got through the check everything loop
 
-                        ### add these as temp variables and run this loop. If they fail ()"you've tried every possible primer. What have you done??")
-                        #raise an exception that  a try except loop will catch, flip the sides and try again over writing the temp holders.
-                        #once done append those temp variables to the real lists.
-
-                        if direction == 'positive': 
-                            all_good_positive_fars.append(far) # we add it to the final list
+                        if direction == 'forward': 
+                            temp_pos = far # we add it to the final list
                         else: 
-                            all_good_negative_fars.append(far) # we add it to the final list
-                        # and tell the while loop that this close primer has found it's soul mate
+                            temp_neg = far # we add it to the final list
+                                # and tell the while loop that this close primer has found it's soul mate
                         break #the far primer is found stop searching the far primer list
-    return (all_good_negative_fars, all_good_positive_fars)
+                 
+            if temp_pos and temp_neg :# we've run through every primer we can try
+                break
+            elif not flipped:
+                print("we're in the end game")
+                flipped = True
+            else:
+                print("all hope is lost")
+                snps_to_remove.add(close_primer.snpID)
+                print(f"snpID: {close_primer.snpID} (and all associated alleles) didn't make the list. It couldn't find far primers to that could work")
+                break
+
+        pos_far_primers.append(temp_pos) 
+        neg_far_primers.append(temp_neg)
+    
+    done_snpid = [p for p in done_snpid if p not in snps_to_remove]
+
+    if len(done_snpid) == len(neg_far_primers) == len(pos_far_primers):
+        pass
+    else:
+        print(f'close primers after removal {len(close_primers)}')
+        print(f'neg fars {len(neg_far_primers)}')
+        print(f'pos fars {len(pos_far_primers)}')
+    return (neg_far_primers, pos_far_primers, done_snpid, snps_to_remove)
 
 
 
@@ -88,7 +119,7 @@ def multiplex_close(big_list: list[list[Primer]]):
         """
         This function was made to cut down on the noise that comes from calling the primer calc_heterodimer function
         """ 
-        return func(get_primer(left, leftPrimer).sequence,get_primer(right).sequence)
+        return check_heterodimer(get_primer(left, leftPrimer).sequence,get_primer(right).sequence)
 
     def find_best_primer(allele):
         """
@@ -134,7 +165,6 @@ def multiplex_close(big_list: list[list[Primer]]):
             alleles_prob_count[left] += 1                     
             alleles_prob_count[right] += 1
     #every time we go over something we will change it's remaining problems to be negative so we it won't trigger the while loop
-
     while((res:=max(enumerate(alleles_prob_count),key=lambda x: x[1]))[1]>0):
         #find the allele that's causing the most problems and start with it first.
         find_best_primer(res[0])                   
