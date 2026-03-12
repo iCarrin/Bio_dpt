@@ -158,6 +158,8 @@ def generate_matching_primers(primer_king, snp_json, direction, flipped, primer_
         '''
     else:
         raise Exception("no direction given. How did we get here?")
+    
+
 
     #get some far primers for primer_king, but only the best (use strict mode). if the filter fails the while loop should try again farther down the line
     #if the ones that pass don't pass the heterodimer then primer_start should be updated and the whole thing tried again.
@@ -165,13 +167,24 @@ def generate_matching_primers(primer_king, snp_json, direction, flipped, primer_
         # the reverse complement flips the sequence each time so we can iterate over each one the same way. Researchers expect DNA to come in the forward
         # format even if it was reversed in real life, so no need to flip it back. The note that it should be reversed is enough.
         # each one will walk back from the right side 
-        trial_snip = far_sequence[-(max_len+primer_start) : -primer_start or None] # this takes a chunk to feed into a primer generator
+        trial_snip = far_sequence[-(max_len+start) : -start or None] # this takes a chunk to feed into a primer generator
         
+      
         try:#filter strict mode will throw an error so we use try except
-            yield from make_primers(trial_snip, min_len, max_len, primer_king.snpID, primer_king.allele, direction)
-            primer_start += 6
-
+            far_primers = make_primers(trial_snip, min_len, max_len, primer_king.snpID, primer_king.allele, direction)
+            # filt_far, _ = filter_one_list(far_primers, temp, 2, strict_mode=True)\
+            if far_primers:
+                passes = True
+            else:
+                start += 6
         except ValueError as e:
-            logger.critical(f'{primer_king.snpID} allele {primer_king.allele} had no useable far primers')
-            raise Exception("you've tried every possible primer. What have you done??")
-            
+            print(e)
+            logger.warning(e)
+            start += 6 #extensive testing shows that 6 is the fastest step to run (See readme for link)
+            if start > max_dist-max_len:
+                logger.critical(f'{primer_king.snpID} allele {primer_king.allele} had no useable far primers')
+                raise Exception("you've tried every possible primer. What have you done??")
+        
+    
+    return far_primers, start
+
