@@ -102,7 +102,7 @@ def generate_allele_specific_probes(snp_json: list[dict], min_len: int = 28, max
 
 
 
-def generate_matching_primers(primer_king, snp_json, direction, flipped, primer_start = 0, min_len = 18, max_len = 24, min_dist: int = 50, max_dist: int = 250): 
+def generate_matching_primers(primer_king, snp_json, direction, flipped, start = 0, min_len = 18, max_len = 24, min_dist: int = 50, max_dist: int = 250): 
     """
         Generate matching primers for top  allele-specific primers.
         TODO: Optimize primer pairing.
@@ -175,6 +175,7 @@ def generate_matching_primers(primer_king, snp_json, direction, flipped, primer_
             # filt_far, _ = filter_one_list(far_primers, temp, 2, strict_mode=True)\
             if far_primers:
                 passes = True
+                break
             else:
                 start += 6
         except ValueError as e:
