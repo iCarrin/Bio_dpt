@@ -10,8 +10,8 @@ def make_probes(seq, min_len, snp_id, allele, direction="forward",index=0) -> li
 
     if len(seq) >= min_len:   #len(seq) should just be max_len. It only won't be if the seq length is less than min_len (if the sequence is only 10 long then we'll trigger this)
         len_of_the_flank = (len(seq)-min_len)//2
-        cof = [0,0,0,0,0,0] #Count Of Failure
-        rff = ["TM too low", "Tm Too high", "Homodimer", "Hairpin", "Started with a 'G'", "Probes"] # Reasons For Failure
+        cof = [0,0,0,0,0] #Count Of Failure
+        rff = ["TM too low", "Tm Too high", "Homodimer", "Hairpin", "Probes"] # Reasons For Failure
         for length in range(len_of_the_flank):#possible bug if the forward mismatch is smaller than the minimum length
                                             #length is 0-max_len
             trimmed = seq[length: -length if length != 0 else None]#this is assuming that the seq given is already the maximum length. 
@@ -22,7 +22,7 @@ def make_probes(seq, min_len, snp_id, allele, direction="forward",index=0) -> li
             
                                      #These take one off the left and right to see if it gets us anywhere out of 34 it saved an extra 3
             for segment in [trimmed, trimmed[:-1], trimmed[1:]]:
-                cof[5] += 1 
+                cof[4] += 1 
                 try:                                                            #these need to be user controlled inputs
                     probes.append(Probe(snp_id, allele, segment, direction, 70.0, 3.0, -3.0, -3.0))
                 except FilterFail as e:
@@ -35,8 +35,6 @@ def make_probes(seq, min_len, snp_id, allele, direction="forward",index=0) -> li
                             cof[2] += 1
                         case "hairpin":
                             cof[3] += 1
-                        case "started with G":
-                            cof[4] += 1
                     pass
 
     else:
@@ -45,9 +43,9 @@ def make_probes(seq, min_len, snp_id, allele, direction="forward",index=0) -> li
         logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
         
     '''probe error messages (simple and extensive)'''
-    # br = cof.index(max(cof[:-1]))
-    # print(f'snp: {snp_id} allele: {allele} {cof[5]} {rff[5]}, {cof[0]+cof[1]+cof[2]+cof[3]+cof[4]} misses, {cof[br]} were {rff[br]}')
-    # print(f'snp: {snp_id} allele: {allele} {cof[5]} {rff[5]}, {cof[0]+cof[1]+cof[2]+cof[3]+cof[4]} misses, {cof[0]} were {rff[0]}, {cof[1]} were {rff[1]}, {cof[2]} were {rff[2]}, {cof[3]} were {rff[3]}, {cof[4]} were {rff[4]}')
+    br = cof.index(max(cof[:-1]))
+    print(f'snp: {snp_id} allele: {allele} {cof[4]} {rff[4]}, {cof[0]+cof[1]+cof[2]+cof[3]} misses, {cof[br]} were {rff[br]}')
+    # print(f'snp: {snp_id} allele: {allele} {cof[4]} {rff[4]}, {cof[0]+cof[1]+cof[2]+cof[3]} misses, {cof[0]} were {rff[0]}, {cof[1]} were {rff[1]}, {cof[2]} were {rff[2]}, {cof[3]} were {rff[3]}')
     return probes
 def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> Generator[Primer]: 
     
@@ -102,7 +100,7 @@ def generate_allele_specific_probes(snp_json: list[dict], min_len: int = 28, max
 
 
 
-def generate_matching_primers(primer_king, snp_json, direction, flipped, start = 0, min_len = 18, max_len = 24, min_dist: int = 50, max_dist: int = 250): 
+def generate_matching_primers(primer_king, snp_json, direction, flipped, primer_start = 0, min_len = 18, max_len = 24, min_dist: int = 50, max_dist: int = 250): 
     """
         Generate matching primers for top  allele-specific primers.
         TODO: Optimize primer pairing.
@@ -179,7 +177,3 @@ def generate_matching_primers(primer_king, snp_json, direction, flipped, start =
             if primer_start > max_dist-max_len:
                 logger.critical(f'{primer_king.snpID} allele {primer_king.allele} had no useable far primers')
                 raise Exception("you've tried every possible primer. What have you done??")
-        
-    
-    return far_primers, start
-

@@ -3,8 +3,7 @@ import primer3
 from itertools import combinations,chain
 from Primer_functions import generate_matching_primers
 
-def check_heterodimer(primer1,primer2,heterodimer_max = 50.0,tm_max=40,memo=None):
-    if memo is None: memo = {}
+def check_heterodimer(primer1,primer2,heterodimer_max = 50.0,tm_max=40,memo={}):
     if (key:=tuple(sorted((primer1,primer2)))) in memo:
         return memo[key]
     result=primer3.calc_heterodimer(primer1,primer2)
@@ -31,13 +30,10 @@ def multiplex_far(close_primers, snp_list):
         temp_pos = None
         temp_neg = None
         flipped = False
-        count = 0
+        
         while True:
             for direction in ['forward', 'reverse']:
-                count +=1
-                if count >2:
-                    print(f"{count} times through!!!!!!!")
-               
+             
                 for far in generate_matching_primers(close_primer, snp_list, direction, flipped):#loop every possible primer given 
                     #loop 4
                     for primer in chain(close_primers, pos_far_primers, neg_far_primers): #compare this far primer against all close and already found far primers
