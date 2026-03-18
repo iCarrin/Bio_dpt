@@ -4,6 +4,8 @@ import re # run 'pip install regex' if not already installed
 import time # to handle rate limiting
 import requests
 from typing import List # for type hinting
+from pdfoutput import create_output_json
+from datetime import datetime 
 
 """
 How the app works:
@@ -137,8 +139,6 @@ def Fetch_SNP_Data(rsids: List[str], flank_length: int = 800, use_all = True) ->
     return snp_data
 # ran 5 test of 63 snps. 1 snp call takes 12.7 seconds
 
-from datetime import datetime 
- 
 def Main():
     """
         Main function to generate, filter, rank, pair, and export primers.
@@ -149,6 +149,7 @@ def Main():
         - Validate output with biological experts.
         - Benchmark performance for large SNP sets.
         """
+    
     start = datetime.now()
     
     logging.basicConfig(
@@ -232,7 +233,7 @@ def Main():
     # print(snp_df)
     snp_end = datetime.now()
 
-    primers = generate_allele_specific_probes(snp_df, 28, 32)
+    primers,bad = generate_allele_specific_probes(snp_df, 28, 32)
     primer_close_end = datetime.now()
     # for primer in primers:
     #     for allele in primer:
@@ -263,5 +264,10 @@ def Main():
     logger.info(f"multiplexing close took : {multi_end - snp_end}")
     logger.info(f"generate far took : {far_end - multi_end}")
     logger.info(f"total time : {end-start}")
+
+    create_output_json(best_primers,"final_2.pdf",(900,375))
+    create_output_json(bad,"final_bad.pdf",(25000,375))
+    
+    
 if(__name__ == "__main__"):
     Main()

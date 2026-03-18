@@ -74,6 +74,7 @@ def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> 
 
 def generate_allele_specific_probes(snp_json: list[dict], min_len: int = 28, max_len: int = 32) -> list[list[Probe]]:
     all_probes = []
+    bad_probes=[]
     def make_allele_probes_list(snp_id, allele, sequence, snp_pos,i):
         #add a check here for length so that make primers doesn't have to.
         flank_len = max_len - max_len//2#this gives the longer half
@@ -92,9 +93,9 @@ def generate_allele_specific_probes(snp_json: list[dict], min_len: int = 28, max
             all_probes.append(allele_probes)
         else:
             print(f"snp: {snp["snpID"]} allele: {snp["allele"]} didn't make the cut")
-    if not all_probes:
-        raise ValueError("There were no probes found")
-    return all_probes
+            bad_probes.append(snp)
+    
+    return all_probes,bad_probes
 
 
 
@@ -170,10 +171,8 @@ def generate_matching_primers(primer_king, snp_json, direction, flipped, primer_
         try:#filter strict mode will throw an error so we use try except
             yield from make_primers(trial_snip, min_len, max_len, primer_king.snpID, primer_king.allele, direction)
             primer_start += 6
+
         except ValueError as e:
-            print(e)
-            logger.warning(e)
-            primer_start += 6 #extensive testing shows that 6 is the fastest step to run (See readme for link)
-            if primer_start > max_dist-max_len:
-                logger.critical(f'{primer_king.snpID} allele {primer_king.allele} had no useable far primers')
-                raise Exception("you've tried every possible primer. What have you done??")
+            logger.critical(f'{primer_king.snpID} allele {primer_king.allele} had no useable far primers')
+            raise Exception("you've tried every possible primer. What have you done??")
+            
