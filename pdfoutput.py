@@ -56,18 +56,21 @@ def fix_things(thing):
 
 def create_output_json(info,output_file,page_size,percision=2):
     d1={"elements":[{"type":"table","data":[]}]}
-    if type(info[0])==Probe:
-        d1["elements"][0]['data'].append([i for i in vars(info[0])])
-    else:
-        d1["elements"][0]['data'].append([i for i in info[0]])
-        
-    for i in info:
-        if type(i)==Probe:
-            d1["elements"][0]['data'].append(i.to_list(percision))
+    try:
+        if type(info[0])==Probe:
+            d1["elements"][0]['data'].append([i for i in vars(info[0])])
         else:
-            d1["elements"][0]['data'].append(list(i.values()))
+            d1["elements"][0]['data'].append([i for i in info[0]])
+            
+        for i in info:
+            if type(i)==Probe:
+                d1["elements"][0]['data'].append(i.to_list(percision))
+            else:
+                d1["elements"][0]['data'].append(list(i.values()))
+        json_to_pdf(d1,output_file,page_size)
+    except:
+        pass
 
-    json_to_pdf(d1,output_file,page_size)
         
 
 

@@ -43,8 +43,8 @@ def make_probes(seq, min_len, snp_id, allele, direction="forward",index=0) -> li
         logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
         
     '''probe error messages (simple and extensive)'''
-    br = cof.index(max(cof[:-1]))
-    print(f'snp: {snp_id} allele: {allele} {cof[4]} {rff[4]}, {cof[0]+cof[1]+cof[2]+cof[3]} misses, {cof[br]} were {rff[br]}')
+    # br = cof.index(max(cof[:-1]))
+    # print(f'snp: {snp_id} allele: {allele} {cof[4]} {rff[4]}, {cof[0]+cof[1]+cof[2]+cof[3]} misses, {cof[br]} were {rff[br]}')
     # print(f'snp: {snp_id} allele: {allele} {cof[4]} {rff[4]}, {cof[0]+cof[1]+cof[2]+cof[3]} misses, {cof[0]} were {rff[0]}, {cof[1]} were {rff[1]}, {cof[2]} were {rff[2]}, {cof[3]} were {rff[3]}')
     return probes
 def make_primers(seq, min_len, max_len, snp_id, allele, direction="forward") -> Generator[Primer]: 
@@ -92,7 +92,7 @@ def generate_allele_specific_probes(snp_json: list[dict], min_len: int = 28, max
         if allele_probes:
             all_probes.append(allele_probes)
         else:
-            print(f"snp: {snp["snpID"]} allele: {snp["allele"]} didn't make the cut")
+            # print(f"snp: {snp["snpID"]} allele: {snp["allele"]} didn't make the cut")
             bad_probes.append(snp)
     
     return all_probes,bad_probes
@@ -108,6 +108,7 @@ def generate_matching_primers(primer_king, snp_json, direction, flipped, primer_
         - Use primer3-py's designPrimers for more efficient pairing.
         - Add checks for primer pair compatibility (e.g., Tm difference < 5Â°C).
     """
+    
     
     if len(snp_json[0]['sequence']) < (min_dist+17)/2:
         raise Exception("your sequence is so short it won't allow for even 1 primer to be maid. " \
@@ -134,7 +135,7 @@ def generate_matching_primers(primer_king, snp_json, direction, flipped, primer_
             far_sequence = str(Seq(far_sequence).reverse_complement()) #change to sequence object, reverse complement it, and change it back to string
 
     
-        '''                                  _______  
+        r'''                                  _______  
                                              |______\_
                                              |________\ what we make eventually 
         _________________________|___________=====================("===" means reverse complement DNA)
@@ -147,7 +148,7 @@ def generate_matching_primers(primer_king, snp_json, direction, flipped, primer_
         far_sequence = whole_sequence[middle-max_dist:middle-min_dist-1]
         if flipped:
             far_sequence = str(Seq(far_sequence).reverse_complement())
-        '''
+        r'''
                                    SNP
         ____________________________|____________________________
                      __/______|           

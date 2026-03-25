@@ -1,7 +1,8 @@
-from Primer_Classes import Primer, Probe
-import primer3
+from Primer_Classes import Primer
 from itertools import combinations,chain
 from Primer_functions import generate_matching_primers
+import primer3
+
 
 def check_heterodimer(primer1,primer2,heterodimer_max = 50.0,tm_max=40,memo={}):
     if (key:=tuple(sorted((primer1,primer2)))) in memo:
@@ -65,12 +66,11 @@ def multiplex_far(close_primers, snp_list):
     
     done_snpid = [p for p in done_snpid if p not in snps_to_remove]
 
-    if len(done_snpid) == len(neg_far_primers) == len(pos_far_primers):
-        pass
-    else:
+    if not (len(done_snpid) == len(neg_far_primers) == len(pos_far_primers)):
         print(f'close primers after removal {len(close_primers)}')
         print(f'neg fars {len(neg_far_primers)}')
         print(f'pos fars {len(pos_far_primers)}')
+
     return (neg_far_primers, pos_far_primers, done_snpid, snps_to_remove)
 
 
