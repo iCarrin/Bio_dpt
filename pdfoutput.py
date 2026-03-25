@@ -9,17 +9,14 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from Primer_Classes import Probe
 
-
 def json_to_pdf(json_data, output_file,pagesize=(900,375)):
     doc = SimpleDocTemplate(output_file, pagesize=pagesize)
     styles = getSampleStyleSheet()
     story = []
-
     # Title
     if "title" in json_data:
         story.append(Paragraph(json_data["title"], styles["Title"]))
         story.append(Spacer(1, 20))
-
     # Elements
     for element in json_data.get("elements", []):
         if element["type"] == "paragraph":

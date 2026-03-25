@@ -29,25 +29,25 @@ class Fetch_Data(threading.Thread):
                 } 
 
 def ask_user(rsid,raw_alleles):
-        print(f"alleles for {rsid}:")
-        for i, allele in enumerate(raw_alleles):
-            print(f"{i+1}) {allele}")
-        alleles_wanted = input("type the corresponding numbers for the alleles you want separated by spaces, or just \"All\" for all of them: ")
-        if alleles_wanted.strip().upper() == "ALL" or alleles_wanted.strip().upper() == "":
-            print("using all alleles")
-            wanted_alleles= raw_alleles
-            return wanted_alleles
-        elif re.fullmatch(r'[0-9\s]+', alleles_wanted):
-            indices = [int(x) for x in alleles_wanted.strip().split(" ")]
-            if max(indices) > len(raw_alleles) or min(indices) < 1:
-                print("you asked for an allele that wasn't in the list")
-                return ask_user()
-            else:
-                wanted_alleles=[raw_alleles[i-1] for i in indices]
-                return wanted_alleles
-        else:
-            print("you typed more than just numbers and spaces. Try again")
+    print(f"alleles for {rsid}:")
+    for i, allele in enumerate(raw_alleles):
+        print(f"{i+1}) {allele}")
+    alleles_wanted = input("type the corresponding numbers for the alleles you want separated by spaces, or just \"All\" for all of them: ")
+    if alleles_wanted.strip().upper() == "ALL" or alleles_wanted.strip().upper() == "":
+        print("using all alleles")
+        wanted_alleles= raw_alleles
+        return wanted_alleles
+    elif re.fullmatch(r'[0-9\s]+', alleles_wanted):
+        indices = [int(x) for x in alleles_wanted.strip().split(" ")]
+        if max(indices) > len(raw_alleles) or min(indices) < 1:
+            print("you asked for an allele that wasn't in the list")
             return ask_user()
+        else:
+            wanted_alleles=[raw_alleles[i-1] for i in indices]
+            return wanted_alleles
+    else:
+        print("you typed more than just numbers and spaces. Try again")
+        return ask_user()
 
 
 def get_snp_data(rsid_info,lock,snp_list,wanted_alleles):
@@ -56,19 +56,19 @@ def get_snp_data(rsid_info,lock,snp_list,wanted_alleles):
     seq_resp.raise_for_status()
     template_seq = seq_resp.text.strip()
     for allele in wanted_alleles:
-            # Validate that allele contains valid DNA characters only
-            if not re.fullmatch("[ACGTNacgtn]+", allele):
-                print(f"Skipping non-standard allele '{allele}' for {rsid_info["rsid"]}")
-                continue
-            modified_seq = template_seq[:rsid_info["rel_pos"]] + allele.upper() + template_seq[rsid_info["rel_pos"] + 1:]
-            if modified_seq[0]!='N':
-                with lock:
-                    snp_list.append({
-                        "snpID": rsid_info["rsid"],
-                        "allele": allele.upper(),
-                        "sequence": modified_seq,
-                        "position": rsid_info["rel_pos"]
-                    })
+        # Validate that allele contains valid DNA characters only
+        if not re.fullmatch("[ACGTNacgtn]+", allele):
+            print(f"Skipping non-standard allele '{allele}' for {rsid_info["rsid"]}")
+            continue
+        modified_seq = template_seq[:rsid_info["rel_pos"]] + allele.upper() + template_seq[rsid_info["rel_pos"] + 1:]
+        if modified_seq[0]!='N':
+            with lock:
+                snp_list.append({
+                    "snpID": rsid_info["rsid"],
+                    "allele": allele.upper(),
+                    "sequence": modified_seq,
+                    "position": rsid_info["rel_pos"]
+                })
 
 
 def get_rsids():
