@@ -9,17 +9,14 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from Primer_Classes import Probe
 
-
 def json_to_pdf(json_data, output_file,pagesize=(900,375)):
     doc = SimpleDocTemplate(output_file, pagesize=pagesize)
     styles = getSampleStyleSheet()
     story = []
-
     # Title
     if "title" in json_data:
         story.append(Paragraph(json_data["title"], styles["Title"]))
         story.append(Spacer(1, 20))
-
     # Elements
     for element in json_data.get("elements", []):
         if element["type"] == "paragraph":
@@ -56,18 +53,21 @@ def fix_things(thing):
 
 def create_output_json(info,output_file,page_size,percision=2):
     d1={"elements":[{"type":"table","data":[]}]}
-    if type(info[0])==Probe:
-        d1["elements"][0]['data'].append([i for i in vars(info[0])])
-    else:
-        d1["elements"][0]['data'].append([i for i in info[0]])
-        
-    for i in info:
-        if type(i)==Probe:
-            d1["elements"][0]['data'].append(i.to_list(percision))
+    try:
+        if type(info[0])==Probe:
+            d1["elements"][0]['data'].append([i for i in vars(info[0])])
         else:
-            d1["elements"][0]['data'].append(list(i.values()))
+            d1["elements"][0]['data'].append([i for i in info[0]])
+            
+        for i in info:
+            if type(i)==Probe:
+                d1["elements"][0]['data'].append(i.to_list(percision))
+            else:
+                d1["elements"][0]['data'].append(list(i.values()))
+        json_to_pdf(d1,output_file,page_size)
+    except:
+        pass
 
-    json_to_pdf(d1,output_file,page_size)
         
 
 

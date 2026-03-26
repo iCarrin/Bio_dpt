@@ -1,0 +1,381 @@
+import primer3
+from Primer_Classes import Primer, Probe, FilterFail
+from itertools import combinations,chain
+from Bio.Seq import Seq
+import logging
+from typing import Generator
+from pdfoutput import create_output_json
+from datetime import datetime
+
+class Multiplexer():
+    def __init__(self,snp_df,mv_conc=50.0, dv_conc=3, dntp_conc=0.8, dna_conc=200, dmso_conc=0.0, dmso_fact=0.0, formamide_conc=0.0, annealing_temp_c=-10.0, temp_c=37.0, tm_method='santalucia',salt_corrections_method='owczarzy'):
+        self.snp_df=snp_df
+        self.primer3=primer3.thermoanalysis.ThermoAnalysis()
+        self.primer3.set_thermo_args(mv_conc=mv_conc, dv_conc=dv_conc, dntp_conc=dntp_conc, dna_conc=dna_conc, 
+        dmso_conc=dmso_conc, dmso_fact=dmso_fact, formamide_conc=formamide_conc, annealing_temp_c=-annealing_temp_c, 
+        temp_c=temp_c, tm_method=tm_method,salt_corrections_method=salt_corrections_method)
+        self.logger = logging.getLogger(__name__)
+
+    def _check_heterodimer(self,primer1,primer2,heterodimer_max = 50.0,tm_max=40,memo={}):
+        if (key:=tuple(sorted((primer1,primer2)))) in memo:
+            return memo[key]
+        result=self.primer3.calc_heterodimer(primer1,primer2)
+        ans=result.dg > heterodimer_max * 1000 and result.tm > tm_max
+        memo[key]= ans
+        return ans 
+    
+    def _multiplex_far(self,close_primers):
+        '''
+        Multiplex the far primers against the close primers and any far primers that have already succeeded
+        
+        '''
+        pos_far_primers = [] 
+        neg_far_primers = [] 
+        temp_pos = None
+        temp_neg = None
+        done_snpid = set()
+        snps_to_remove = set()
+        for close_primer in close_primers: # find each close primer a far primer match
+            if close_primer.snpID in done_snpid:
+                continue
+            done_snpid.add(close_primer.snpID)
+
+            temp_pos = None
+            temp_neg = None
+            flipped = False
+            
+            while True:
+                for direction in ['forward', 'reverse']:
+                    for far in self.generate_matching_primers(close_primer, direction, flipped):#loop every possible primer given 
+                        for primer in chain(close_primers, pos_far_primers, neg_far_primers): #compare this far primer against all close and already found far primers
+                            # calculate it's heterodimer value every other primer far and close
+                            if self._check_heterodimer(far.sequence, primer.sequence):#it only fails if it has a delta gibbs lower than the max AND the dimer will happen at temp that will bother us
+                                break #stop checking early
+                        else: #only if it got through the check everything loop
+                            if direction == 'forward': 
+                                temp_pos = far # we add it to the final list
+                            else: 
+                                temp_neg = far # we add it to the final list
+                                    # and tell the while loop that this close primer has found it's soul mate
+                            break #the far primer is found stop searching the far primer list
+                    
+                if temp_pos and temp_neg :# we've run through every primer we can try
+                    break
+                elif not flipped:
+                    print("we're in the end game")
+                    flipped = True
+                else:
+                    print("all hope is lost")
+                    snps_to_remove.add(close_primer.snpID)
+                    print(f"snpID: {close_primer.snpID} (and all associated alleles) didn't make the list. It couldn't find far primers to that could work")
+                    break
+
+            pos_far_primers.append(temp_pos) 
+            neg_far_primers.append(temp_neg)
+        
+        done_snpid = [p for p in done_snpid if p not in snps_to_remove]
+
+        if not (len(done_snpid) == len(neg_far_primers) == len(pos_far_primers)):
+            print(f'close primers after removal {len(close_primers)}')
+            print(f'neg fars {len(neg_far_primers)}')
+            print(f'pos fars {len(pos_far_primers)}')
+
+        return (neg_far_primers, pos_far_primers, done_snpid, snps_to_remove)
+    #this is basically a glorified heterodimer filter. Glorified because it has to check all options against all others 
+    def _multiplex_close(self,big_list: list[list[Primer]]):
+        """
+        This is the heterodimer close primer filter. 
+        The thought was that if we filter the close primers to where they like each other than the far primers will have
+        the slimmest possible list to filter against. All close primers are have their heterodimer checked against all other 
+        close primers. If there is a heterodimer one of the primers is cycled through it's primer list until either there
+        are no more problems or the end of the primer list is reached, in which case the primer with the leaset problems is
+        saved. Once all problem primers have been cycled through the 
+
+        """
+        # time saved for keeping track of improvements
+        #instead of looping through a list of lists (N^2) we find all combinations. This avoids looking at combinations already tried ((n(n-1))/2)
+        allele_combos = combinations(range(len(big_list)),2)
+        #this is called enough in for loops that we save it as a variable
+        list_size = len(big_list)
+        #this keeps track of how many problems each allele has
+        alleles_prob_count = [0] * list_size
+        #this keeps track of the current primer that is working for the allele corresponding to the indices 
+        golden_primers = [0] * list_size
+
+        def get_primer(allele_index, primer_index=None):
+            """
+            this function was made just to cut down on the noise
+            that comes from referencing a dict in a list in a list
+            """
+            if primer_index is None:
+                primer_index = golden_primers[allele_index]
+            return big_list[allele_index][primer_index]
+            
+        def get_heterodimer(left, right, leftPrimer = None):
+            """
+            This function was made to cut down on the noise that comes from calling the primer calc_heterodimer function
+            """ 
+            return self._check_heterodimer(get_primer(left, leftPrimer).sequence,get_primer(right).sequence)
+
+        def find_best_primer(allele):
+            """
+            This function takes a problem allele and cycles through it's primers until it finds one that isn't a problem or runs out
+            of primers in which case it uses the least problematic one it could find
+            """
+            #this is to make sure we don't run off the end of the list of dictionaries
+            num_primes = len(big_list[allele])
+
+            #we start at the original primer even though it's failings are the reason we're in this function in the first place.
+            #The reason for that iscase the other primer that formed a hetero dimer was fixed before coming to this one. In that case
+            #we check the first primer again, see that the other primer it fought with was straitened out, and end the loop
+            for primer in range(num_primes):
+                #AI gave me this. I wanted to clean up a if not statement and it up classed me out of town.
+                            #add every index from the list that isn't the allele it's self, and that make a hetero dimer
+                probs_found = 0                                                           # primer is only used in this function 
+                for i in range(list_size):
+                    if i != allele and get_heterodimer(allele, i, primer):
+                        probs_found+=1
+                        if alleles_prob_count[i] == 0:
+                            alleles_prob_count[i] = 1
+                                                                                        # to make sure the primers are looping
+                #if it's better
+                if probs_found < alleles_prob_count[allele]:
+                    #update who the current best primer is 
+                    golden_primers[allele] = primer 
+                    # update it's lower problem count
+                    alleles_prob_count[allele] = probs_found
+                    #and if those problems were 0 we can go home early
+                    if probs_found == 0:
+                        break
+                #at the end (will get skipped if probs was 0) we check to make sure that we didn't make any new problems
+                
+        """that's the end of the internal functions"""
+        #loop the whole list (using the combo list to cut the N^2 time in half)
+        for left, right in allele_combos:
+            #log all of the problems
+            if get_heterodimer(left, right):
+                #since we're using the combo list we update both locations when finding a problem
+                alleles_prob_count[left] += 1                     
+                alleles_prob_count[right] += 1
+        #every time we go over something we will change it's remaining problems to be negative so we it won't trigger the while loop
+        while((res:=max(enumerate(alleles_prob_count),key=lambda x: x[1]))[1]>0):
+            #find the allele that's causing the most problems and start with it first.
+            find_best_primer(res[0])                   
+            alleles_prob_count[res[0]] = -alleles_prob_count[res[0]]
+            
+        fighting_alleles = []
+        #this makes a list of where the failures still are
+        remaining_stubborn = [i for i in range(list_size) if alleles_prob_count[i] < 0]
+        #this makes that into a combo list so that the final loop only has to look at those locations
+        fight_combos = combinations(remaining_stubborn,2)
+        
+        for left, right in fight_combos:#
+            fighting_alleles.append((f"{(l:=get_primer(left)).snpID} : {l.allele}", 
+                                    f"{(r:=get_primer(right)).snpID} : {r.allele}"))
+            
+        out_list = [get_primer(i) for i in range(list_size)]
+
+        # multiplexing took : 0:00:05.508837
+        return out_list, fighting_alleles
+    
+    def _make_probes(self,seq, min_len, snp_id, allele, direction="forward",index=0) -> list[Probe]:
+        probes = []
+        if len(seq) >= min_len:   #len(seq) should just be max_len. It only won't be if the seq length is less than min_len (if the sequence is only 10 long then we'll trigger this)
+            len_of_the_flank = (len(seq)-min_len)//2
+            cof = [0,0,0,0,0] #Count Of Failure
+            rff = ["TM too low", "Tm Too high", "Homodimer", "Hairpin", "Probes"] # Reasons For Failure
+            for length in range(len_of_the_flank):#possible bug if the forward mismatch is smaller than the minimum length
+                                                #length is 0-max_len
+                trimmed = seq[length: -length if length != 0 else None]#this is assuming that the seq given is already the maximum length. 
+                # If given a crazy long string it will start at "length" and give the rest of the string
+                #take this part out of the loop, so we can have one dictionary that says the SNP ID and ALLELE and Direction, 
+                #and then a list in that dictionary of sequence and lengths. Storing the name over and over seems redundant ID   
+                #These take one off the left and right to see if it gets us anywhere out of 34 it saved an extra 3
+                for segment in [trimmed, trimmed[:-1], trimmed[1:]]:
+                    cof[4] += 1 
+                    try:                                           #these need to be user controlled inputs
+                        probes.append(Probe(snp_id, allele, segment, direction,self.primer3 ,70.0, 3.0, -3.0, -3.0))
+                    except FilterFail as e:
+                        match e.fail_type:
+                            case "lower Tm":
+                                cof[0] += 1
+                            case "upper Tm":
+                                cof[1] += 1
+                            case "homodimer":
+                                cof[2] += 1
+                            case "hairpin":
+                                cof[3] += 1
+                        pass
+
+        else:
+    
+            print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
+            self.logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
+            
+        '''probe error messages (simple and extensive)'''
+        # br = cof.index(max(cof[:-1]))
+        # print(f'snp: {snp_id} allele: {allele} {cof[4]} {rff[4]}, {cof[0]+cof[1]+cof[2]+cof[3]} misses, {cof[br]} were {rff[br]}')
+        # print(f'snp: {snp_id} allele: {allele} {cof[4]} {rff[4]}, {cof[0]+cof[1]+cof[2]+cof[3]} misses, {cof[0]} were {rff[0]}, {cof[1]} were {rff[1]}, {cof[2]} were {rff[2]}, {cof[3]} were {rff[3]}')
+        return probes
+
+    def _make_primers(self,seq, min_len, max_len, snp_id, allele, direction="forward") -> Generator[Primer]: 
+    
+        if len(seq) >= min_len:   #len(seq) should just be max_len. It only wont be if the seq length is less than max_len (if the sequence is only 10 long then we'll trigger this)
+            for length in range(max_len-min_len+1):#possible bug if the forward mismatch is smaller than the minimum length
+                                                #length is 0-max_len
+                trimmed = seq[length:]#this is assuming that the seq given is already the maximum length. 
+                # If given a crazy long string it will start at "length" and give the rest of the string
+                #take this part out of the loop, so we can have one dictionary that says the SNP ID and ALLELE and Direction, 
+                #and then a list in that dictionary of sequence and lengths. Storing the name over and over seems redundant ID
+            
+                try:                                     #these need to be user controlled inputs
+                    yield Primer(snp_id, allele, trimmed, direction,self.primer3 ,60.0, 3.0, -3.0, -3.0)
+                except FilterFail as e:
+                    # print(e)
+                    pass
+                    # logging.error(f"{snp_id} allele: {allele} had no primers that passed the filtering")
+        
+        else:
+            print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
+            self.logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
+            raise ValueError
+        # return primers
+
+    def _generate_allele_specific_probes(self,min_len: int = 28, max_len: int = 32) -> list[list[Probe]]:
+        all_probes = []
+        bad_probes=[]
+        def _make_allele_probes_list(snp_id, allele, sequence, snp_pos,i):
+            #add a check here for length so that make primers doesn't have to.
+            flank_len = max_len - max_len//2#this gives the longer half
+            #this gives us the longer half so in case we need to drop a g form the 5' end it balances better
+            forward = sequence[snp_pos - flank_len : snp_pos+(flank_len)+1]#this gets the largest segment.   
+            reverse = str(Seq(sequence[snp_pos-flank_len : snp_pos+flank_len+1]).reverse_complement()) #creates a Biopython sequence, gets the reverse complement, and converts is back to a string
+            probes = (self._make_probes(forward, min_len, snp_id, allele,index=i))\
+                    + (self._make_probes(reverse, min_len, snp_id, allele, "reverse",index=i))
+            
+            probes.sort(key=lambda x: x.rank)
+            return probes
+        
+        for i,snp in enumerate(self.snp_df):
+            allele_probes = _make_allele_probes_list(snp["snpID"], snp["allele"], snp["sequence"], snp["position"],i)
+            if allele_probes:
+                all_probes.append(allele_probes)
+            else:
+                # print(f"snp: {snp["snpID"]} allele: {snp["allele"]} didn't make the cut")
+                bad_probes.append(snp)
+        
+        return all_probes,bad_probes
+
+    def generate_matching_primers(self,primer_king, direction, flipped, primer_start = 0, min_len = 18, max_len = 24, min_dist: int = 50, max_dist: int = 250): 
+        """
+            Generate matching primers for top  allele-specific primers.
+            TODO: Optimize primer pairing.
+            - Use primer3-py's designPrimers for more efficient pairing.
+            - Add checks for primer pair compatibility (e.g., Tm difference < 5Â°C).
+        """
+
+        if len(self.snp_df[0]['sequence']) < (min_dist+17)/2:
+            raise Exception("your sequence is so short it won't allow for even 1 primer to be maid. " \
+            "Lower your min distance to have the API call for a longer string")
+        snp_dict = {}   
+        for snp in self.snp_df:
+            if snp['snpID'] == primer_king.snpID: # we only search for a matching SNP because we aren't even using the allele section    
+                snp_dict = snp
+                break   
+        else:
+            raise Exception(f"there is no matching entry in the Json list for {primer_king.snpID}")
+          
+        middle = snp_dict['position']
+        whole_sequence = snp_dict['sequence']
+        #get the far sequence and reverse complement is if necessary
+        if direction == "forward":
+            far_sequence = whole_sequence[middle+min_dist:middle+max_dist]#everything from snp (middle) plus start dist cutting off at max if necessary (end is exclusive so +1)
+            if not flipped:
+                far_sequence = str(Seq(far_sequence).reverse_complement()) #change to sequence object, reverse complement it, and change it back to string 
+            r'''                                  _______  
+                                                |______\_
+                                                |________\ what we make eventually 
+            _________________________|___________=====================("===" means reverse complement DNA)
+                                    SNP                  All the way to max_dist gets reverse complemented
+                                        min_dist away
+            
+            '''       
+        elif direction == "reverse":
+            far_sequence = whole_sequence[middle-max_dist:middle-min_dist-1]
+            if flipped:
+                far_sequence = str(Seq(far_sequence).reverse_complement())
+            r'''
+                                    SNP
+            ____________________________|____________________________
+                        __/______|           
+            What makin'./_________|  
+                            Go min_dist away 
+            and take up to Max_dist to use in primer making   
+            '''
+        else:
+            raise Exception("no direction given. How did we get here?")
+        
+        #get some far primers for primer_king, but only the best (use strict mode). if the filter fails the while loop should try again farther down the line
+        #if the ones that pass don't pass the heterodimer then primer_start should be updated and the whole thing tried again.
+        while(True):
+            # the reverse complement flips the sequence each time so we can iterate over each one the same way. Researchers expect DNA to come in the forward
+            # format even if it was reversed in real life, so no need to flip it back. The note that it should be reversed is enough.
+            # each one will walk back from the right side 
+            trial_snip = far_sequence[-(max_len+primer_start) : -primer_start or None] # this takes a chunk to feed into a primer generator    
+            try:#filter strict mode will throw an error so we use try except
+                yield from self._make_primers(trial_snip, min_len, max_len, primer_king.snpID, primer_king.allele, direction)
+                primer_start += 6
+            except ValueError as e:
+                self.logger.critical(f'{primer_king.snpID} allele {primer_king.allele} had no useable far primers')
+                raise Exception("you've tried every possible primer. What have you done??")
+                
+    def main(self):
+        """
+        Main function to generate, filter, rank, pair, and export primers.
+        TODO: Add comprehensive error handling and logging.
+        - Log progress and errors to a file.
+        - Add input validation for rsIDs and output format.
+        TODO: Test with real SNP data.
+        - Validate output with biological experts.
+        - Benchmark performance for large SNP sets.
+        """
+    
+        start = datetime.now()
+        logging.basicConfig(
+            filename="primer_info.log",
+            level=logging.INFO,
+            format="%(asctime)s - %(levelname)s - %(message)s"
+        )
+
+        snp_end = datetime.now()
+        primers,bad = self._generate_allele_specific_probes(28, 32)
+        if len(primers)==0:
+            raise Exception(f"{len(primers)=}")
+        primer_close_end = datetime.now()
+        best_primers, fights = self._multiplex_close(primers)
+        if len(best_primers)==0:
+            raise Exception(f"{len(best_primers)=}")
+        multi_end = datetime.now()
+        poasitive, negative, center, center_reject = self._multiplex_far(best_primers)
+        far_end = datetime.now()
+        end = datetime.now()
+        self.logger.info(f"allele's run {len(self.snp_df)}")
+        self.logger.info(f"fetch_snp took : {snp_end - start}")
+        self.logger.info(f"generate_allele_specific_primer took : {primer_close_end - snp_end}")
+        # logger.info(f"filter_primers took : {filter_end - primer_close_end}")
+        self.logger.info(f"multiplexing close took : {multi_end - snp_end}")
+        self.logger.info(f"generate far took : {far_end - multi_end}")
+        self.logger.info(f"total time : {end-start}")
+
+        create_output_json(best_primers,"final_primer.pdf",(1000,1000))
+        create_output_json(fights,"final_fights.pdf",(1000,1000))
+        create_output_json(bad,"final_bad.pdf",(12000,1000))
+        create_output_json(poasitive,"final_positive.pdf",(1000,1000))
+        create_output_json(negative,"final_negitive.pdf",(1000,1000))
+        create_output_json(center,"final_center.pdf",(1000,1000))
+        create_output_json(center_reject,"final_center_reject.pdf",(900,1000))
+
+
+                    
+
+
