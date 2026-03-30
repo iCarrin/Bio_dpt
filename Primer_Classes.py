@@ -12,7 +12,7 @@ class FilterFail(Exception):
 
 class Primer():
 
-    def __init__(self, snp_id, allele, sequence, direction,thermo, desired_tm: float = 60.0, diff: float = 2.0, homodimer_goal: float = -3.0, hairpin_goal: float = -3.0, target_gc = 50.0):
+    def __init__(self, snp_id, allele, sequence, direction,thermo, desired_tm: float, diff: float, homodimer_goal: float, hairpin_goal: float, target_gc: float):
         
         self.tm = thermo.calc_tm(sequence)
         if self.tm < (desired_tm-diff):
@@ -45,8 +45,7 @@ class Primer():
 
         
 class Probe(Primer):
-    # self, snp_id, allele, primer,  direction, desired_tm: float = 60.0, diff: float = 3.0, homodimer_goal: float = -3.0, hairpin_goal: float = -3.0
-    def __init__(self, snp_id, allele, sequence, direction,thermo ,desired_tm: float = 60.0, diff: float = 2.0, homodimer_goal: float = -3.0, hairpin_goal: float = -3.0, target_gc = 50.0):
+    def __init__(self, snp_id, allele, sequence, direction,thermo ,desired_tm: float, diff: float, homodimer_goal: float, hairpin_goal: float , target_gc: float):
         super().__init__(snp_id, allele, sequence, direction, thermo,desired_tm, diff, homodimer_goal, hairpin_goal, target_gc)
     def to_list(self,percision):
         return [ val if  type(val:=self.__getattribute__(i))!=float else round(val,percision)  for i in vars(self)]
