@@ -8,19 +8,39 @@ from pdfoutput import create_output_json
 from datetime import datetime
 
 class Multiplexer():
-    def __init__(self,snp_df,mv_conc=50.0, dv_conc=3, dntp_conc=0.8, dna_conc=200, dmso_conc=0.0, dmso_fact=0.0, formamide_conc=0.0, annealing_temp_c=-10.0, temp_c=37.0, tm_method='santalucia',salt_corrections_method='owczarzy'):
+    def __init__(self,snp_df,**kwarg):
         self.snp_df=snp_df
+        
         self.primer3=primer3.thermoanalysis.ThermoAnalysis()
-        self.primer3.set_thermo_args(mv_conc=mv_conc, dv_conc=dv_conc, dntp_conc=dntp_conc, dna_conc=dna_conc, 
-        dmso_conc=dmso_conc, dmso_fact=dmso_fact, formamide_conc=formamide_conc, annealing_temp_c=-annealing_temp_c, 
-        temp_c=temp_c, tm_method=tm_method,salt_corrections_method=salt_corrections_method)
+        self.primer3.set_thermo_args(
+            mv_conc=kwarg.get("mv_conc",50), dv_conc=kwarg.get("dv_conc",3), dntp_conc=kwarg.get("dntp_conc",0.8), 
+            dna_conc=kwarg.get("dna_conc",200), dmso_conc=kwarg.get("dmso_conc",0.0), 
+            dmso_fact=kwarg.get("dmso_fact",0.0), formamide_conc=kwarg.get("formamide_conc",0.0),
+            annealing_temp_c=kwarg.get("annealing_temp_c",-10.0), temp_c=kwarg.get("temp_c",37), 
+            tm_method=kwarg.get("tm_method","santalucia"), salt_corrections_method=kwarg.get("salt_corrections_method","owczarzy")) 
+        
+        self.desired_tm=kwarg.get("desired_tm",60.0)
+        self.diff=kwarg.get("diff",2)
+        self.homodimer_goal=kwarg.get("homodimer_goal",-3.0)
+        self.hairpin_goal=kwarg.get("hairpin_goal",-3.0)
+        self.target_gc=kwarg.get("target_gc",50.0)
+        self.heterodimer_max = kwarg.get("heterodimer_max",50.0)
+        self.tm_max=kwarg.get("tm_max",40)
+        self.min_probe_len=kwarg.get("min_probe_len",28)
+        self.max_probe_len=kwarg.get("max_probe_len",32)
+        self.min_primer_len=kwarg.get("min_primer_len",18)
+        self.max_primer_len=kwarg.get("max_primer_len",24)
+        self.min_primer_dist=kwarg.get("min_primer_dist",50)
+        self.max_primer_dist=kwarg.get("max_primer_dist",250)
+        self.pdfoutput_precision=kwarg.get("pdfoutput_precision",2)
+
         self.logger = logging.getLogger(__name__)
 
-    def _check_heterodimer(self,primer1,primer2,heterodimer_max = 50.0,tm_max=40,memo={}):
+    def _check_heterodimer(self,primer1,primer2,memo={}):
         if (key:=tuple(sorted((primer1,primer2)))) in memo:
             return memo[key]
         result=self.primer3.calc_heterodimer(primer1,primer2)
-        ans=result.dg > heterodimer_max * 1000 and result.tm > tm_max
+        ans=result.dg > self.heterodimer_max * 1000 and result.tm > self.tm_max
         memo[key]= ans
         return ans 
     
@@ -178,10 +198,10 @@ class Multiplexer():
         # multiplexing took : 0:00:05.508837
         return out_list, fighting_alleles
     
-    def _make_probes(self,seq, min_len, snp_id, allele, direction="forward",index=0) -> list[Probe]:
+    def _make_probes(self,seq, snp_id, allele, direction="forward",index=0) -> list[Probe]:
         probes = []
-        if len(seq) >= min_len:   #len(seq) should just be max_len. It only won't be if the seq length is less than min_len (if the sequence is only 10 long then we'll trigger this)
-            len_of_the_flank = (len(seq)-min_len)//2
+        if len(seq) >= self.min_probe_len:   #len(seq) should just be max_len. It only won't be if the seq length is less than min_len (if the sequence is only 10 long then we'll trigger this)
+            len_of_the_flank = (len(seq)-self.min_probe_len)//2
             cof = [0,0,0,0,0] #Count Of Failure
             rff = ["TM too low", "Tm Too high", "Homodimer", "Hairpin", "Probes"] # Reasons For Failure
             for length in range(len_of_the_flank):#possible bug if the forward mismatch is smaller than the minimum length
@@ -194,7 +214,7 @@ class Multiplexer():
                 for segment in [trimmed, trimmed[:-1], trimmed[1:]]:
                     cof[4] += 1 
                     try:                                           #these need to be user controlled inputs
-                        probes.append(Probe(snp_id, allele, segment, direction,self.primer3 ,70.0, 3.0, -3.0, -3.0))
+                        probes.append(Probe(snp_id, allele, segment, direction,self.primer3 ,self.desired_tm, self.diff, self.homodimer_goal, self.hairpin_goal,self.target_gc))
                     except FilterFail as e:
                         match e.fail_type:
                             case "lower Tm":
@@ -209,8 +229,8 @@ class Multiplexer():
 
         else:
     
-            print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
-            self.logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
+            print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {self.min_probe_len} long and it ended up only being {len(seq)}")
+            self.logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {self.min_probe_len} long and it ended up only being {len(seq)}")
             
         '''probe error messages (simple and extensive)'''
         # br = cof.index(max(cof[:-1]))
@@ -218,10 +238,10 @@ class Multiplexer():
         # print(f'snp: {snp_id} allele: {allele} {cof[4]} {rff[4]}, {cof[0]+cof[1]+cof[2]+cof[3]} misses, {cof[0]} were {rff[0]}, {cof[1]} were {rff[1]}, {cof[2]} were {rff[2]}, {cof[3]} were {rff[3]}')
         return probes
 
-    def _make_primers(self,seq, min_len, max_len, snp_id, allele, direction="forward") -> Generator[Primer]: 
+    def _make_primers(self,seq, snp_id, allele, direction="forward") -> Generator[Primer]: 
     
-        if len(seq) >= min_len:   #len(seq) should just be max_len. It only wont be if the seq length is less than max_len (if the sequence is only 10 long then we'll trigger this)
-            for length in range(max_len-min_len+1):#possible bug if the forward mismatch is smaller than the minimum length
+        if len(seq) >= self.min_primer_len:   #len(seq) should just be max_len. It only wont be if the seq length is less than max_len (if the sequence is only 10 long then we'll trigger this)
+            for length in range(self.max_primer_len-self.min_primer_len+1):#possible bug if the forward mismatch is smaller than the minimum length
                                                 #length is 0-max_len
                 trimmed = seq[length:]#this is assuming that the seq given is already the maximum length. 
                 # If given a crazy long string it will start at "length" and give the rest of the string
@@ -229,29 +249,29 @@ class Multiplexer():
                 #and then a list in that dictionary of sequence and lengths. Storing the name over and over seems redundant ID
             
                 try:                                     #these need to be user controlled inputs
-                    yield Primer(snp_id, allele, trimmed, direction,self.primer3 ,60.0, 3.0, -3.0, -3.0)
+                    yield Primer(snp_id, allele, trimmed, direction,self.primer3 ,self.desired_tm, self.diff, self.homodimer_goal, self.hairpin_goal,self.target_gc)
                 except FilterFail as e:
                     # print(e)
                     pass
                     # logging.error(f"{snp_id} allele: {allele} had no primers that passed the filtering")
         
         else:
-            print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
-            self.logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {min_len} long and it ended up only being {len(seq)}")
+            print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {self.min_primer_len} long and it ended up only being {len(seq)}")
+            self.logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {self.min_primer_len} long and it ended up only being {len(seq)}")
             raise ValueError
         # return primers
 
-    def _generate_allele_specific_probes(self,min_len: int = 28, max_len: int = 32) -> list[list[Probe]]:
+    def _generate_allele_specific_probes(self) -> list[list[Probe]]:
         all_probes = []
         bad_probes=[]
         def _make_allele_probes_list(snp_id, allele, sequence, snp_pos,i):
             #add a check here for length so that make primers doesn't have to.
-            flank_len = max_len - max_len//2#this gives the longer half
+            flank_len = self.max_probe_len - self.max_probe_len//2#this gives the longer half
             #this gives us the longer half so in case we need to drop a g form the 5' end it balances better
             forward = sequence[snp_pos - flank_len : snp_pos+(flank_len)+1]#this gets the largest segment.   
             reverse = str(Seq(sequence[snp_pos-flank_len : snp_pos+flank_len+1]).reverse_complement()) #creates a Biopython sequence, gets the reverse complement, and converts is back to a string
-            probes = (self._make_probes(forward, min_len, snp_id, allele,index=i))\
-                    + (self._make_probes(reverse, min_len, snp_id, allele, "reverse",index=i))
+            probes = (self._make_probes(forward, snp_id, allele,index=i))\
+                    + (self._make_probes(reverse,snp_id, allele, "reverse",index=i))
             
             probes.sort(key=lambda x: x.rank)
             return probes
@@ -266,7 +286,7 @@ class Multiplexer():
         
         return all_probes,bad_probes
 
-    def generate_matching_primers(self,primer_king, direction, flipped, primer_start = 0, min_len = 18, max_len = 24, min_dist: int = 50, max_dist: int = 250): 
+    def generate_matching_primers(self,primer_king, direction, flipped, primer_start = 0): 
         """
             Generate matching primers for top  allele-specific primers.
             TODO: Optimize primer pairing.
@@ -274,7 +294,7 @@ class Multiplexer():
             - Add checks for primer pair compatibility (e.g., Tm difference < 5Â°C).
         """
 
-        if len(self.snp_df[0]['sequence']) < (min_dist+17)/2:
+        if len(self.snp_df[0]['sequence']) < (self.min_primer_dist+17)/2:
             raise Exception("your sequence is so short it won't allow for even 1 primer to be maid. " \
             "Lower your min distance to have the API call for a longer string")
         snp_dict = {}   
@@ -289,7 +309,7 @@ class Multiplexer():
         whole_sequence = snp_dict['sequence']
         #get the far sequence and reverse complement is if necessary
         if direction == "forward":
-            far_sequence = whole_sequence[middle+min_dist:middle+max_dist]#everything from snp (middle) plus start dist cutting off at max if necessary (end is exclusive so +1)
+            far_sequence = whole_sequence[middle+self.min_primer_dist:middle+self.max_primer_dist]#everything from snp (middle) plus start dist cutting off at max if necessary (end is exclusive so +1)
             if not flipped:
                 far_sequence = str(Seq(far_sequence).reverse_complement()) #change to sequence object, reverse complement it, and change it back to string 
             r'''                                  _______  
@@ -301,7 +321,7 @@ class Multiplexer():
             
             '''       
         elif direction == "reverse":
-            far_sequence = whole_sequence[middle-max_dist:middle-min_dist-1]
+            far_sequence = whole_sequence[middle-self.max_primer_dist:middle-self.min_primer_dist-1]
             if flipped:
                 far_sequence = str(Seq(far_sequence).reverse_complement())
             r'''
@@ -321,9 +341,9 @@ class Multiplexer():
             # the reverse complement flips the sequence each time so we can iterate over each one the same way. Researchers expect DNA to come in the forward
             # format even if it was reversed in real life, so no need to flip it back. The note that it should be reversed is enough.
             # each one will walk back from the right side 
-            trial_snip = far_sequence[-(max_len+primer_start) : -primer_start or None] # this takes a chunk to feed into a primer generator    
+            trial_snip = far_sequence[-(self.max_primer_len+primer_start) : -primer_start or None] # this takes a chunk to feed into a primer generator    
             try:#filter strict mode will throw an error so we use try except
-                yield from self._make_primers(trial_snip, min_len, max_len, primer_king.snpID, primer_king.allele, direction)
+                yield from self._make_primers(trial_snip,primer_king.snpID, primer_king.allele, direction)
                 primer_start += 6
             except ValueError as e:
                 self.logger.critical(f'{primer_king.snpID} allele {primer_king.allele} had no useable far primers')
@@ -348,7 +368,7 @@ class Multiplexer():
         )
 
         snp_end = datetime.now()
-        primers,bad = self._generate_allele_specific_probes(28, 32)
+        primers,bad = self._generate_allele_specific_probes()
         if len(primers)==0:
             raise Exception(f"{len(primers)=}")
         primer_close_end = datetime.now()
@@ -367,13 +387,13 @@ class Multiplexer():
         self.logger.info(f"generate far took : {far_end - multi_end}")
         self.logger.info(f"total time : {end-start}")
 
-        create_output_json(best_primers,"final_primer.pdf",(1000,1000))
-        create_output_json(fights,"final_fights.pdf",(1000,1000))
-        create_output_json(bad,"final_bad.pdf",(12000,1000))
-        create_output_json(poasitive,"final_positive.pdf",(1000,1000))
-        create_output_json(negative,"final_negitive.pdf",(1000,1000))
-        create_output_json(center,"final_center.pdf",(1000,1000))
-        create_output_json(center_reject,"final_center_reject.pdf",(900,1000))
+        create_output_json(best_primers,"final_primer.pdf",(1000,1000),self.pdfoutput_precision)
+        create_output_json(fights,"final_fights.pdf",(1000,1000),self.pdfoutput_precision)
+        create_output_json(bad,"final_bad.pdf",(12000,1000),self.pdfoutput_precision)
+        create_output_json(poasitive,"final_positive.pdf",(1000,1000),self.pdfoutput_precision)
+        create_output_json(negative,"final_negitive.pdf",(1000,1000),self.pdfoutput_precision)
+        create_output_json(center,"final_center.pdf",(1000,1000),self.pdfoutput_precision)
+        create_output_json(center_reject,"final_center_reject.pdf",(900,1000),self.pdfoutput_precision)
 
 
                     
