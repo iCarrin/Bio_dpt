@@ -13,22 +13,23 @@ class Fetch_Data(threading.Thread):
         r=requests.post(ENSEMBL_REST+"/variation/homo_sapiens", headers={ "Content-Type" : "application/json", "Accept" : "application/json"}, data=json.dumps({"ids":self.rsids}))
         r.raise_for_status()
         info=r.json()
-        for k,v in info.items():
-            l1=[i for i in v["mappings"][0]["allele_string"].strip('-/').split("/") if len(i)==1]
-            if len(l1)<2:
-                print(k,"has no valid alleles/less than 2 to choose from")
+        for rsid,v in info.items():
+            possible_alleles=[i for i in v["mappings"][0]["allele_string"].strip('-/').split("/") if len(i)==1]
+            if len(possible_alleles)<2:
+                print(rsid,"has no valid alleles/less than 2 to choose from")
                 continue
             p=int(v["mappings"][0]["start"])
-            self.result[k]={
-                "rsid":k,
+            self.result[rsid]={
+                "rsid":rsid,
                 "chom":v["mappings"][0]["seq_region_name"],
-                "allele_str":l1,
+                "allele_str":possible_alleles,
                 "start":(t:=max(1,p-800)),
                 "end":p+800,
                 "rel_pos":self.flank_length if t>1 else p
                 } 
 
 def ask_user(rsid,raw_alleles):
+
     print(f"alleles for {rsid}:")
     for i, allele in enumerate(raw_alleles):
         print(f"{i+1}) {allele}")
@@ -41,13 +42,14 @@ def ask_user(rsid,raw_alleles):
         indices = [int(x) for x in alleles_wanted.strip().split(" ")]
         if max(indices) > len(raw_alleles) or min(indices) < 1:
             print("you asked for an allele that wasn't in the list")
-            return ask_user()
+            return ask_user(rsid,raw_alleles)
         else:
             wanted_alleles=[raw_alleles[i-1] for i in indices]
+            print(wanted_alleles)
             return wanted_alleles
     else:
         print("you typed more than just numbers and spaces. Try again")
-        return ask_user()
+        return ask_user(rsid,raw_alleles)
 
 
 def get_snp_data(rsid_info,lock,snp_list,wanted_alleles):
@@ -78,31 +80,38 @@ def get_rsids():
         with open(filename) as txt:
             return {i.strip() for i in txt}
     else:
-        l1=set()
+        fetched_rsids=set()
         while True:
             rsid=input("enter rsid type 'exit' to exit: ")
             if rsid.lower()!="exit":
-                l1.add(rsid)
+                if re.fullmatch(r'rs\d+', rsid.strip().lower()):
+                    fetched_rsids.add(rsid)
+                else:
+                    print("that wasn't a real answer")
+                    pass
             else:
                 break
-        return l1
+        print(fetched_rsids)
+        return fetched_rsids
 
 
 def get_data(flank_length=800):
     rsids=list(get_rsids())
     all={}     
-    threads=[Fetch_Data(rsids[i:i+200],flank_length) for i in range(0,len(rsids),200)]
-    for i in threads:
-        i.start()
-    for i in threads:
-        i.join()
-        all|=i.result
+    threads=[Fetch_Data(rsids[i1:i1+200],flank_length) for i1 in range(0,len(rsids),200)]
+    for i2 in threads:
+        i2.start()
+    for i3 in threads:
+        i3.join()
+        all|=i3.result
     lock=threading.Lock()
     snp_list=[]
-    threads1=[(t:=threading.Thread(target=get_snp_data,args=(i,lock,snp_list,ask_user(i["rsid"],i["allele_str"]))),t.start())[0] for i in all.values()]    
-    for i in threads1:
-        i.join()
-    return snp_list
+
+    threads1=[(t:=threading.Thread(target=get_snp_data,args=(i4,lock,snp_list,ask_user(i4["rsid"],i4["allele_str"]))),t.start())[0] for i4 in all.values()]    
+    for i5 in threads1:
+        i5.join()
+
+    return snp_list, all
 
 
    

@@ -24,17 +24,19 @@ def Main():
         ("homodimer_goal (default -3.0): ", float),("hairpin_goal (default -3.0): ", float),
         ("target_gc (default 50.0): ",float),
         ("heterodimer_max (default 50.0): ",float),("tm_max (default 40): ",int),
-        ("min_probe_len (default 28): ",int),("max_probe_len (default 32): ",int),
+        ("min_probe_len (default 12): ",int),("max_probe_len (default 28): ",int),
         ("min_primer_len (default 18): ",int),("max_primer_len (default 24): ",int),
         ("min_primer_dist (default 50): ",int),("max_primer_dist (default 250): ",int),
         ("flank_length (default 800): ",int),("pdfoutput_precision (default 2): ", int)
         ]:
         if (t:=input(i)):
             d1[i.split()[0]]=ty(t)
-    snp_df=get_data(d1.get("flank_length",800))
+    snp_df, allele_df =get_data(d1.get("flank_length",250))
     if len(snp_df)==0:
         raise Exception(f"{len(snp_df)=}")
-    Multiplexer(snp_df=snp_df,**d1).main()
+    Multiplexer(snp_df=snp_df,alleles=allele_df,**d1).main()
     
 if(__name__ == "__main__"):
     Main()
+    # rs17396518
+# rs148120343
