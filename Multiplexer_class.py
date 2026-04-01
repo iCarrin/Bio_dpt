@@ -8,9 +8,9 @@ from pdfoutput import create_output_json
 from datetime import datetime
 
 class Multiplexer():
-    def __init__(self,snp_df,**kwarg):
+    def __init__(self,snp_df,alleles,**kwarg):
         self.snp_df=snp_df
-        
+        self.known_alleles = alleles
         self.primer3=primer3.thermoanalysis.ThermoAnalysis()
         self.primer3.set_thermo_args(
             mv_conc=kwarg.get("mv_conc",50), dv_conc=kwarg.get("dv_conc",3), dntp_conc=kwarg.get("dntp_conc",0.8), 
@@ -18,7 +18,7 @@ class Multiplexer():
             dmso_fact=kwarg.get("dmso_fact",0.0), formamide_conc=kwarg.get("formamide_conc",0.0),
             annealing_temp_c=kwarg.get("annealing_temp_c",-10.0), temp_c=kwarg.get("temp_c",37), 
             tm_method=kwarg.get("tm_method","santalucia"), salt_corrections_method=kwarg.get("salt_corrections_method","owczarzy")) 
-        
+
         self.desired_tm=kwarg.get("desired_tm",60.0)
         self.diff=kwarg.get("diff",2)
         self.homodimer_goal=kwarg.get("homodimer_goal",-3.0)
@@ -26,8 +26,8 @@ class Multiplexer():
         self.target_gc=kwarg.get("target_gc",50.0)
         self.heterodimer_max = kwarg.get("heterodimer_max",50.0)
         self.tm_max=kwarg.get("tm_max",40)
-        self.min_probe_len=kwarg.get("min_probe_len",28)
-        self.max_probe_len=kwarg.get("max_probe_len",32)
+        self.min_probe_len=kwarg.get("min_probe_len",12)
+        self.max_probe_len=kwarg.get("max_probe_len",28)
         self.min_primer_len=kwarg.get("min_primer_len",18)
         self.max_primer_len=kwarg.get("max_primer_len",24)
         self.min_primer_dist=kwarg.get("min_primer_dist",50)
@@ -44,7 +44,7 @@ class Multiplexer():
         memo[key]= ans
         return ans 
     
-    def _multiplex_far(self,close_primers):
+    def _multiplex_primers(self,close_primers):
         '''
         Multiplex the far primers against the close primers and any far primers that have already succeeded
         
@@ -55,7 +55,7 @@ class Multiplexer():
         temp_neg = None
         done_snpid = set()
         snps_to_remove = set()
-        for close_primer in close_primers: # find each close primer a far primer match
+        for close_primer in close_primers: # find each probe a set of primers
             if close_primer.snpID in done_snpid:
                 continue
             done_snpid.add(close_primer.snpID)
@@ -101,8 +101,8 @@ class Multiplexer():
             print(f'pos fars {len(pos_far_primers)}')
 
         return (neg_far_primers, pos_far_primers, done_snpid, snps_to_remove)
-    #this is basically a glorified heterodimer filter. Glorified because it has to check all options against all others 
-    def _multiplex_close(self,big_list: list[list[Primer]]):
+    
+    def _multiplex_probes(self,big_list: list[list[Primer]]):
         """
         This is the heterodimer close primer filter. 
         The thought was that if we filter the close primers to where they like each other than the far primers will have
@@ -122,7 +122,7 @@ class Multiplexer():
         #this keeps track of the current primer that is working for the allele corresponding to the indices 
         golden_primers = [0] * list_size
 
-        def get_primer(allele_index, primer_index=None):
+        def _get_next_probe(allele_index, primer_index=None):
             """
             this function was made just to cut down on the noise
             that comes from referencing a dict in a list in a list
@@ -131,29 +131,29 @@ class Multiplexer():
                 primer_index = golden_primers[allele_index]
             return big_list[allele_index][primer_index]
             
-        def get_heterodimer(left, right, leftPrimer = None):
+        def _get_heterodimer(left, right, leftPrimer = None):
             """
             This function was made to cut down on the noise that comes from calling the primer calc_heterodimer function
             """ 
-            return self._check_heterodimer(get_primer(left, leftPrimer).sequence,get_primer(right).sequence)
+            return self._check_heterodimer(_get_next_probe(left, leftPrimer).sequence,_get_next_probe(right).sequence)
 
-        def find_best_primer(allele):
+        def find_best_probe(allele):
             """
             This function takes a problem allele and cycles through it's primers until it finds one that isn't a problem or runs out
             of primers in which case it uses the least problematic one it could find
             """
             #this is to make sure we don't run off the end of the list of dictionaries
-            num_primes = len(big_list[allele])
+            num_probes = len(big_list[allele])
 
             #we start at the original primer even though it's failings are the reason we're in this function in the first place.
             #The reason for that iscase the other primer that formed a hetero dimer was fixed before coming to this one. In that case
             #we check the first primer again, see that the other primer it fought with was straitened out, and end the loop
-            for primer in range(num_primes):
+            for probe in range(num_probes):
                 #AI gave me this. I wanted to clean up a if not statement and it up classed me out of town.
                             #add every index from the list that isn't the allele it's self, and that make a hetero dimer
                 probs_found = 0                                                           # primer is only used in this function 
                 for i in range(list_size):
-                    if i != allele and get_heterodimer(allele, i, primer):
+                    if i != allele and _get_heterodimer(allele, i, probe):
                         probs_found+=1
                         if alleles_prob_count[i] == 0:
                             alleles_prob_count[i] = 1
@@ -161,7 +161,7 @@ class Multiplexer():
                 #if it's better
                 if probs_found < alleles_prob_count[allele]:
                     #update who the current best primer is 
-                    golden_primers[allele] = primer 
+                    golden_primers[allele] = probe 
                     # update it's lower problem count
                     alleles_prob_count[allele] = probs_found
                     #and if those problems were 0 we can go home early
@@ -173,14 +173,14 @@ class Multiplexer():
         #loop the whole list (using the combo list to cut the N^2 time in half)
         for left, right in allele_combos:
             #log all of the problems
-            if get_heterodimer(left, right):
+            if _get_heterodimer(left, right):
                 #since we're using the combo list we update both locations when finding a problem
                 alleles_prob_count[left] += 1                     
                 alleles_prob_count[right] += 1
         #every time we go over something we will change it's remaining problems to be negative so we it won't trigger the while loop
         while((res:=max(enumerate(alleles_prob_count),key=lambda x: x[1]))[1]>0):
             #find the allele that's causing the most problems and start with it first.
-            find_best_primer(res[0])                   
+            find_best_probe(res[0])                   
             alleles_prob_count[res[0]] = -alleles_prob_count[res[0]]
             
         fighting_alleles = []
@@ -190,15 +190,14 @@ class Multiplexer():
         fight_combos = combinations(remaining_stubborn,2)
         
         for left, right in fight_combos:#
-            fighting_alleles.append((f"{(l:=get_primer(left)).snpID} : {l.allele}", 
-                                    f"{(r:=get_primer(right)).snpID} : {r.allele}"))
+            fighting_alleles.append((f"{(l:=_get_next_probe(left)).snpID} : {l.allele}", 
+                                    f"{(r:=_get_next_probe(right)).snpID} : {r.allele}"))
             
-        out_list = [get_primer(i) for i in range(list_size)]
+        out_list = [_get_next_probe(i) for i in range(list_size)]
 
-        # multiplexing took : 0:00:05.508837
         return out_list, fighting_alleles
     
-    def _make_probes(self,seq, snp_id, allele, direction="forward",index=0) -> list[Probe]:
+    def _make_probes(self, seq, snp_id, allele, direction="forward",index=0) -> list[Probe]:
         probes = []
         if len(seq) >= self.min_probe_len:   #len(seq) should just be max_len. It only won't be if the seq length is less than min_len (if the sequence is only 10 long then we'll trigger this)
             len_of_the_flank = (len(seq)-self.min_probe_len)//2
@@ -213,8 +212,8 @@ class Multiplexer():
                 #These take one off the left and right to see if it gets us anywhere out of 34 it saved an extra 3
                 for segment in [trimmed, trimmed[:-1], trimmed[1:]]:
                     cof[4] += 1 
-                    try:                                           #these need to be user controlled inputs
-                        probes.append(Probe(snp_id, allele, segment, direction,self.primer3 ,self.desired_tm, self.diff, self.homodimer_goal, self.hairpin_goal,self.target_gc))
+                    try:                                           
+                        probes.append(Probe(snp_id, allele, segment, direction, self.primer3, self.desired_tm, self.diff, self.homodimer_goal, self.hairpin_goal,self.target_gc))
                     except FilterFail as e:
                         match e.fail_type:
                             case "lower Tm":
@@ -264,15 +263,27 @@ class Multiplexer():
     def _generate_allele_specific_probes(self) -> list[list[Probe]]:
         all_probes = []
         bad_probes=[]
+        reverse_dict = {
+            "A" : "T",
+            "T" : "A",
+            "C" : "G",        
+            "G" : "C"
+        }
         def _make_allele_probes_list(snp_id, allele, sequence, snp_pos,i):
+            #this is a lazy way to put an LNA triplet into the middle of our probe sequence
+            lna_sequence = sequence[:snp_pos-1] + (sequence[snp_pos-1:snp_pos+2]).lower() + sequence[snp_pos+2:]
+            known_allele_list = self.known_alleles[snp_id]['allele_str']
+      
             #add a check here for length so that make primers doesn't have to.
             flank_len = self.max_probe_len - self.max_probe_len//2#this gives the longer half
             #this gives us the longer half so in case we need to drop a g form the 5' end it balances better
-            forward = sequence[snp_pos - flank_len : snp_pos+(flank_len)+1]#this gets the largest segment.   
-            reverse = str(Seq(sequence[snp_pos-flank_len : snp_pos+flank_len+1]).reverse_complement()) #creates a Biopython sequence, gets the reverse complement, and converts is back to a string
-            probes = (self._make_probes(forward, snp_id, allele,index=i))\
-                    + (self._make_probes(reverse,snp_id, allele, "reverse",index=i))
-            
+            forward = lna_sequence[snp_pos - flank_len : snp_pos+(flank_len)+1]#this gets the largest segment.   
+            forward_probes = self._make_probes(forward, snp_id, allele,index=i) if allele != "G" or "A" not in known_allele_list else []
+
+            reverse = str(Seq(lna_sequence[snp_pos-flank_len : snp_pos+flank_len+1]).reverse_complement()) #creates a Biopython sequence, gets the reverse complement, and converts is back to a string                                                                  #adding a check to see if 
+            reverse_probes = self._make_probes(reverse,snp_id, reverse_dict[allele], "reverse",index=i) if allele != "C" or "A" not in known_allele_list else []
+
+            probes = (forward_probes + reverse_probes)
             probes.sort(key=lambda x: x.rank)
             return probes
         
@@ -372,11 +383,11 @@ class Multiplexer():
         if len(primers)==0:
             raise Exception(f"{len(primers)=}")
         primer_close_end = datetime.now()
-        best_primers, fights = self._multiplex_close(primers)
+        best_primers, fights = self._multiplex_probes(primers)
         if len(best_primers)==0:
             raise Exception(f"{len(best_primers)=}")
         multi_end = datetime.now()
-        poasitive, negative, center, center_reject = self._multiplex_far(best_primers)
+        poasitive, negative, center, center_reject = self._multiplex_primers(best_primers)
         far_end = datetime.now()
         end = datetime.now()
         self.logger.info(f"allele's run {len(self.snp_df)}")
