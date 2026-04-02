@@ -45,7 +45,6 @@ def ask_user(rsid,raw_alleles):
             return ask_user(rsid,raw_alleles)
         else:
             wanted_alleles=[raw_alleles[i-1] for i in indices]
-            print(wanted_alleles)
             return wanted_alleles
     else:
         print("you typed more than just numbers and spaces. Try again")

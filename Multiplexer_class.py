@@ -99,6 +99,8 @@ class Multiplexer():
             print(f'close primers after removal {len(close_primers)}')
             print(f'neg fars {len(neg_far_primers)}')
             print(f'pos fars {len(pos_far_primers)}')
+        
+
 
         return (neg_far_primers, pos_far_primers, done_snpid, snps_to_remove)
     
@@ -371,40 +373,26 @@ class Multiplexer():
         - Benchmark performance for large SNP sets.
         """
     
-        start = datetime.now()
-        logging.basicConfig(
-            filename="primer_info.log",
-            level=logging.INFO,
-            format="%(asctime)s - %(levelname)s - %(message)s"
-        )
 
-        snp_end = datetime.now()
         primers,bad = self._generate_allele_specific_probes()
         if len(primers)==0:
             raise Exception(f"{len(primers)=}")
-        primer_close_end = datetime.now()
         best_primers, fights = self._multiplex_probes(primers)
         if len(best_primers)==0:
             raise Exception(f"{len(best_primers)=}")
-        multi_end = datetime.now()
-        poasitive, negative, center, center_reject = self._multiplex_primers(best_primers)
-        far_end = datetime.now()
-        end = datetime.now()
-        self.logger.info(f"allele's run {len(self.snp_df)}")
-        self.logger.info(f"fetch_snp took : {snp_end - start}")
-        self.logger.info(f"generate_allele_specific_primer took : {primer_close_end - snp_end}")
-        # logger.info(f"filter_primers took : {filter_end - primer_close_end}")
-        self.logger.info(f"multiplexing close took : {multi_end - snp_end}")
-        self.logger.info(f"generate far took : {far_end - multi_end}")
-        self.logger.info(f"total time : {end-start}")
-
-        create_output_json(best_primers,"final_primer.pdf",(1000,1000),self.pdfoutput_precision)
-        create_output_json(fights,"final_fights.pdf",(1000,1000),self.pdfoutput_precision)
-        create_output_json(bad,"final_bad.pdf",(12000,1000),self.pdfoutput_precision)
-        create_output_json(poasitive,"final_positive.pdf",(1000,1000),self.pdfoutput_precision)
-        create_output_json(negative,"final_negitive.pdf",(1000,1000),self.pdfoutput_precision)
-        create_output_json(center,"final_center.pdf",(1000,1000),self.pdfoutput_precision)
-        create_output_json(center_reject,"final_center_reject.pdf",(900,1000),self.pdfoutput_precision)
+        forword, reverse, center, center_reject = self._multiplex_primers(best_primers)
+        tre= forword+reverse
+        tre.sort(key=lambda x : x.snpID)
+        tre2=bad+fights+center_reject
+        # print(forword,reverse,center,center_reject,sep="\n")
+        # create_output_json(best_primers,"final_primer.pdf",(1000,1000),self.pdfoutput_precision)
+        # create_output_json(fights,"final_fights.pdf",(1000,1000),self.pdfoutput_precision)
+        create_output_json(tre2,"final_bad_combined.pdf",(12000,1000),self.pdfoutput_precision)
+        create_output_json(tre,"final_combined.pdf",(1000,1000),self.pdfoutput_precision)
+        # create_output_json(forword,"final_forword.pdf",(1000,1000),self.pdfoutput_precision)
+        # create_output_json(reverse,"final_reverse.pdf",(1000,1000),self.pdfoutput_precision)
+        # create_output_json(center,"final_center.pdf",(1000,1000),self.pdfoutput_precision)
+        # create_output_json(center_reject,"final_center_reject.pdf",(900,1000),self.pdfoutput_precision)
 
 
                     
