@@ -20,7 +20,7 @@ dublets = {
             'GC': HSG(H=-9800,    S=-24.4,   G=-2.09),
             'GG': HSG(H=-8000,    S=-19.9,   G=-2.28),
             'CC': HSG(H=-8000,    S=-19.9,   G=-2.28),
-            #locked then norma
+            #locked then normal
             'aA': HSG(H=707,   S=2.477,   G=-0.092),
             'aC': HSG(H=1131,   S=4.064,   G=-0.122),
             'aG': HSG(H=264,   S=2.613,   G=-0.561),
@@ -37,7 +37,7 @@ dublets = {
             'tC': HSG(H=1893,   S=6.685,   G=-0.208),
             'tG': HSG(H=-1540,  S=-3.044,  G=-0.548),
             'tT': HSG(H=1528,   S=5.298,   G=-0.130),
-            #Normal then locke
+            #Normal then locked
             'Aa': HSG(H=992,   S=4.065,   G=-0.396),
             'Ac': HSG(H=2890,   S=10.576,  G=-0.390),
             'Ag': HSG(H=-1200,  S=-1.826,  G=-0.603),
