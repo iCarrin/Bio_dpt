@@ -33,7 +33,7 @@ class Multiplexer():
         self.min_primer_dist=kwarg.get("min_primer_dist",50)
         self.max_primer_dist=kwarg.get("max_primer_dist",250)
         self.pdfoutput_precision=kwarg.get("pdfoutput_precision",2)
-
+        self.bad_alleles = []
         self.logger = logging.getLogger(__name__)
 
     def _check_heterodimer(self,primer1,primer2,memo={}):
@@ -44,7 +44,7 @@ class Multiplexer():
         memo[key]= ans
         return ans 
     
-    def _multiplex_primers(self,close_primers):
+    def _multiplex_primers(self,snp_site_probes):
         '''
         Multiplex the far primers against the close primers and any far primers that have already succeeded
         
@@ -54,22 +54,21 @@ class Multiplexer():
         temp_pos = None
         temp_neg = None
         done_snpid = set()
-        snps_to_remove = set()
-        for close_primer in close_primers: # find each probe a set of primers
-            if close_primer.snpID in done_snpid:
-                continue
-            done_snpid.add(close_primer.snpID)
 
+        for probe in snp_site_probes: # find each probe a set of primers
+            if probe.snpID in done_snpid:
+                continue
+            
             temp_pos = None
             temp_neg = None
             flipped = False
             
             while True:
                 for direction in ['forward', 'reverse']:
-                    for far in self.generate_matching_primers(close_primer, direction, flipped):#loop every possible primer given 
-                        for primer in chain(close_primers, pos_far_primers, neg_far_primers): #compare this far primer against all close and already found far primers
+                    for far in self.generate_matching_primers(probe, direction, flipped):#loop every possible primer given 
+                        for entry in chain(snp_site_probes, pos_far_primers, neg_far_primers): #compare this far primer against all close and already found far primers
                             # calculate it's heterodimer value every other primer far and close
-                            if self._check_heterodimer(far.sequence, primer.sequence):#it only fails if it has a delta gibbs lower than the max AND the dimer will happen at temp that will bother us
+                            if self._check_heterodimer(far.sequence, entry.sequence):#it only fails if it has a delta gibbs lower than the max AND the dimer will happen at temp that will bother us
                                 break #stop checking early
                         else: #only if it got through the check everything loop
                             if direction == 'forward': 
@@ -77,6 +76,7 @@ class Multiplexer():
                             else: 
                                 temp_neg = far # we add it to the final list
                                     # and tell the while loop that this close primer has found it's soul mate
+                            done_snpid.add(probe.snpID)
                             break #the far primer is found stop searching the far primer list
                     
                 if temp_pos and temp_neg :# we've run through every primer we can try
@@ -86,23 +86,25 @@ class Multiplexer():
                     flipped = True
                 else:
                     print("all hope is lost")
-                    snps_to_remove.add(close_primer.snpID)
-                    print(f"snpID: {close_primer.snpID} (and all associated alleles) didn't make the list. It couldn't find far primers to that could work")
+
+                    for entry in snp_site_probes:
+                        if entry.snpID == probe.snpID:
+                            self.bad_alleles.append((probe.snpID, entry.allele))
+                    print(f"snpID: {probe.snpID} (and all associated alleles) didn't make the list. It couldn't find far primers to that could work")
                     break
 
             pos_far_primers.append(temp_pos) 
             neg_far_primers.append(temp_neg)
         
-        done_snpid = [p for p in done_snpid if p not in snps_to_remove]
 
         if not (len(done_snpid) == len(neg_far_primers) == len(pos_far_primers)):
-            print(f'close primers after removal {len(close_primers)}')
+            print(f'close primers after removal {len(snp_site_probes)}')
             print(f'neg fars {len(neg_far_primers)}')
             print(f'pos fars {len(pos_far_primers)}')
         
 
 
-        return (neg_far_primers, pos_far_primers, done_snpid, snps_to_remove)
+        return (neg_far_primers, pos_far_primers)
     
     def _multiplex_probes(self,big_list: list[list[Primer]]):
         """
@@ -184,20 +186,19 @@ class Multiplexer():
             #find the allele that's causing the most problems and start with it first.
             find_best_probe(res[0])                   
             alleles_prob_count[res[0]] = -alleles_prob_count[res[0]]
-            
-        fighting_alleles = []
+        
         #this makes a list of where the failures still are
         remaining_stubborn = [i for i in range(list_size) if alleles_prob_count[i] < 0]
         #this makes that into a combo list so that the final loop only has to look at those locations
         fight_combos = combinations(remaining_stubborn,2)
         
         for left, right in fight_combos:#
-            fighting_alleles.append((f"{(l:=_get_next_probe(left)).snpID} : {l.allele}", 
-                                    f"{(r:=_get_next_probe(right)).snpID} : {r.allele}"))
+            self.bad_alleles.append(((l:=_get_next_probe(left)).snpID, l.allele)) 
+            self.bad_alleles.append(((r:=_get_next_probe(right)).snpID, r.allele))
             
-        out_list = [_get_next_probe(i) for i in range(list_size)]
+        probes_that_work = [_get_next_probe(i) for i in range(list_size)]
 
-        return out_list, fighting_alleles
+        return probes_that_work
     
     def _make_probes(self, seq, snp_id, allele, direction="forward",index=0) -> list[Probe]:
         probes = []
@@ -264,7 +265,7 @@ class Multiplexer():
 
     def _generate_allele_specific_probes(self) -> list[list[Probe]]:
         all_probes = []
-        bad_probes=[]
+        
         reverse_dict = {
             "A" : "T",
             "T" : "A",
@@ -295,9 +296,9 @@ class Multiplexer():
                 all_probes.append(allele_probes)
             else:
                 # print(f"snp: {snp["snpID"]} allele: {snp["allele"]} didn't make the cut")
-                bad_probes.append(snp)
+                self.bad_alleles.append((snp["snpID"], snp["allele"]))
         
-        return all_probes,bad_probes
+        return all_probes
 
     def generate_matching_primers(self,primer_king, direction, flipped, primer_start = 0): 
         """
@@ -374,20 +375,20 @@ class Multiplexer():
         """
     
 
-        primers,bad = self._generate_allele_specific_probes()
+        primers = self._generate_allele_specific_probes()
         if len(primers)==0:
             raise Exception(f"{len(primers)=}")
-        best_primers, fights = self._multiplex_probes(primers)
-        if len(best_primers)==0:
-            raise Exception(f"{len(best_primers)=}")
-        forword, reverse, center, center_reject = self._multiplex_primers(best_primers)
-        tre= forword+reverse
+        best_probes= self._multiplex_probes(primers)
+        if len(best_probes)==0:
+            raise Exception(f"{len(best_probes)=}")
+        forward, reverse, = self._multiplex_primers(best_probes)
+        tre= best_probes+forward+reverse ####this might not be the right course of action to add the probes into the mix
         tre.sort(key=lambda x : x.snpID)
-        tre2=bad+fights+center_reject
+        print(self.bad_alleles)
         # print(forword,reverse,center,center_reject,sep="\n")
         # create_output_json(best_primers,"final_primer.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(fights,"final_fights.pdf",(1000,1000),self.pdfoutput_precision)
-        create_output_json(tre2,"final_bad_combined.pdf",(12000,1000),self.pdfoutput_precision)
+        create_output_json(self.bad_alleles,"final_bad_combined.pdf",(12000,1000),self.pdfoutput_precision)
         create_output_json(tre,"final_combined.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(forword,"final_forword.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(reverse,"final_reverse.pdf",(1000,1000),self.pdfoutput_precision)
