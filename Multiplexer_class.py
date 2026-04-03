@@ -266,12 +266,6 @@ class Multiplexer():
     def _generate_allele_specific_probes(self) -> list[list[Probe]]:
         all_probes = []
         
-        reverse_dict = {
-            "A" : "T",
-            "T" : "A",
-            "C" : "G",        
-            "G" : "C"
-        }
         def _make_allele_probes_list(snp_id, allele, sequence, snp_pos,i):
             #this is a lazy way to put an LNA triplet into the middle of our probe sequence
             lna_sequence = sequence[:snp_pos-1] + (sequence[snp_pos-1:snp_pos+2]).lower() + sequence[snp_pos+2:]
@@ -284,7 +278,7 @@ class Multiplexer():
             forward_probes = self._make_probes(forward, snp_id, allele,index=i) if allele != "G" or "A" not in known_allele_list else []
 
             reverse = str(Seq(lna_sequence[snp_pos-flank_len : snp_pos+flank_len+1]).reverse_complement()) #creates a Biopython sequence, gets the reverse complement, and converts is back to a string                                                                  #adding a check to see if 
-            reverse_probes = self._make_probes(reverse,snp_id, reverse_dict[allele], "reverse",index=i) if allele != "C" or "A" not in known_allele_list else []
+            reverse_probes = self._make_probes(reverse,snp_id, allele, "reverse",index=i) if allele != "C" or "A" not in known_allele_list else []
 
             probes = (forward_probes + reverse_probes)
             probes.sort(key=lambda x: x.rank)
@@ -382,14 +376,17 @@ class Multiplexer():
         if len(best_probes)==0:
             raise Exception(f"{len(best_probes)=}")
         forward, reverse, = self._multiplex_primers(best_probes)
-        tre= best_probes+forward+reverse ####this might not be the right course of action to add the probes into the mix
+        tre= forward+reverse ####this might not be the right course of action to add the probes into the mix
+        tre2= best_probes ####this might not be the right course of action to add the probes into the mix
         tre.sort(key=lambda x : x.snpID)
+        tre2.sort(key=lambda x : x.snpID)
         print(self.bad_alleles)
         # print(forword,reverse,center,center_reject,sep="\n")
         # create_output_json(best_primers,"final_primer.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(fights,"final_fights.pdf",(1000,1000),self.pdfoutput_precision)
-        create_output_json(self.bad_alleles,"final_bad_combined.pdf",(12000,1000),self.pdfoutput_precision)
+        # create_output_json(self.bad_alleles,"final_bad_combined.pdf",(12000,1000),self.pdfoutput_precision)
         create_output_json(tre,"final_combined.pdf",(1000,1000),self.pdfoutput_precision)
+        create_output_json(tre2,"final_probe_combined.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(forword,"final_forword.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(reverse,"final_reverse.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(center,"final_center.pdf",(1000,1000),self.pdfoutput_precision)
