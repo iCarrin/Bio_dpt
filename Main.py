@@ -31,7 +31,7 @@ def Main():
         ]:
         if (t:=input(i)):
             d1[i.split()[0]]=ty(t)
-    snp_df, allele_df =get_data(d1.get("flank_length",250))
+    snp_df, allele_df =get_data(d1.get("flank_length",800))
     if len(snp_df)==0:
         raise Exception(f"{len(snp_df)=}")
     Multiplexer(snp_df=snp_df,alleles=allele_df,**d1).main()
