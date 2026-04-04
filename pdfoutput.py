@@ -37,21 +37,8 @@ def json_to_pdf(json_data, output_file,pagesize=(900,375)):
 
     doc.build(story)
 
-def fix_things_percision(thing,persicion):
-    for k,v in thing.items():
-        if k in ("hairpin","homomdimer"):
-            tre=v.todict(persicion)
-            thing[k]={"dg":tre["dg"],"tm":tre['tm']}
-        elif type(v)==float:
-            thing[k]=round(v,persicion)
-    return thing
-
-def fix_things(thing):
-    thing["hairpin"]=thing["hairpin"].todict()
-    thing["homomdimer"]=thing["homomdimer"].todict()
-    return thing
-
 def create_output_json(info,output_file,page_size,percision=2):
+    if len(info)==0:return
     d1={"elements":[{"type":"table","data":[]}]}
     if type(info[0])==Probe or type(info[0])==Primer:
         d1["elements"][0]['data'].append([i for i in vars(info[0])])
