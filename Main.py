@@ -31,14 +31,26 @@ def Main():
         ]:
         if (t:=input(i)):
             d1[i.split()[0]]=ty(t)
-    snp_df, allele_df =get_data(d1.get("flank_length",250))
+    snp_df, allele_df =get_data(d1.get("flank_length",800))
     if len(snp_df)==0:
         raise Exception(f"{len(snp_df)=}")
     Multiplexer(snp_df=snp_df,alleles=allele_df,**d1).main()
     
 if(__name__ == "__main__"):
     Main()
-    # rs17396518
-    # rs1799971
-    # rs148120343
-    # rs116801199
+
+
+    # probe min length is 12
+    # probe max length is 20 (true max is 25)
+    # primer dist min is 40
+    # primer dist max 80
+    # make a probe blast api call or add a way for user to deny a self failed probe
+    # make it possible to blast the probe
+    # multiplex all probe and primer options so that we can have fall backs in blasting
+    # add Zack's temperature in there to show the delta tm
+    # probes and primers set at 60
+    # blasting is going to knocks something out
+    # can we primer blast on our end?
+        # for just human genome it's a gig
+    # wrap in streamlit for web page and make it live so new test are testable
+    

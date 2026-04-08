@@ -100,6 +100,7 @@ def get_data(flank_length=800):
     threads=[Fetch_Data(rsids[i1:i1+200],flank_length) for i1 in range(0,len(rsids),200)]
     for i2 in threads:
         i2.start()
+        
     for i3 in threads:
         i3.join()
         all|=i3.result
