@@ -42,7 +42,7 @@ def create_output_json(info,output_file,page_size,percision=2):
     d1={"elements":[{"type":"table","data":[]}]}
     if type(info[0])==Probe or type(info[0])==Primer:
         d1["elements"][0]['data'].append([i for i in vars(info[0])])
-    elif type(info[0])==tuple
+    
     else:
         d1["elements"][0]['data'].append([i for i in info[0]])
         

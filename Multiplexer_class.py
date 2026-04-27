@@ -90,6 +90,7 @@ class Multiplexer():
                     for entry in snp_site_probes:
                         if entry.snpID == probe.snpID:
                             self.bad_alleles.append({"snpid":probe.snpID, "allele":entry.allele})
+                            self.bad_alleles.append({"snpid":probe.snpID, "allele":entry.allele})
                     print(f"snpID: {probe.snpID} (and all associated alleles) didn't make the list. It couldn't find far primers to that could work")
                     break
 
@@ -376,17 +377,17 @@ class Multiplexer():
         if len(best_probes)==0:
             raise Exception(f"{len(best_probes)=}")
         forward, reverse, = self._multiplex_primers(best_probes)
-        tre= forward+reverse ####this might not be the right course of action to add the probes into the mix
+        tre= best_probes + forward+reverse ####this might not be the right course of action to add the probes into the mix
         tre2= best_probes ####this might not be the right course of action to add the probes into the mix
         tre.sort(key=lambda x : x.snpID)
-        tre2.sort(key=lambda x : x.snpID)
+        # tre2.sort(key=lambda x : x.snpID)
         print(self.bad_alleles)
         # print(forword,reverse,center,center_reject,sep="\n")
         # create_output_json(best_primers,"final_primer.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(fights,"final_fights.pdf",(1000,1000),self.pdfoutput_precision)
-        create_output_json(self.bad_alleles,"final_bad_combined.pdf",(120,350),self.pdfoutput_precision)
+        # create_output_json(self.bad_alleles,"final_bad_combined.pdf",(120,350),self.pdfoutput_precision)
         create_output_json(tre,"final_combined.pdf",(1000,1000),self.pdfoutput_precision)
-        create_output_json(tre2,"final_probe_combined.pdf",(1000,1000),self.pdfoutput_precision)
+        # create_output_json(tre2,"final_probe_combined.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(forword,"final_forword.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(reverse,"final_reverse.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(center,"final_center.pdf",(1000,1000),self.pdfoutput_precision)
