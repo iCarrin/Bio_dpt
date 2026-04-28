@@ -7,7 +7,7 @@ from reportlab.platypus import (
 )
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
-from Primer_Classes import Probe
+from Primer_Classes import Probe,Primer
 
 def json_to_pdf(json_data, output_file,pagesize=(900,375)):
     doc = SimpleDocTemplate(output_file, pagesize=pagesize)
@@ -37,36 +37,22 @@ def json_to_pdf(json_data, output_file,pagesize=(900,375)):
 
     doc.build(story)
 
-def fix_things_percision(thing,persicion):
-    for k,v in thing.items():
-        if k in ("hairpin","homomdimer"):
-            tre=v.todict(persicion)
-            thing[k]={"dg":tre["dg"],"tm":tre['tm']}
-        elif type(v)==float:
-            thing[k]=round(v,persicion)
-    return thing
-
-def fix_things(thing):
-    thing["hairpin"]=thing["hairpin"].todict()
-    thing["homomdimer"]=thing["homomdimer"].todict()
-    return thing
-
 def create_output_json(info,output_file,page_size,percision=2):
+    if len(info)==0:return
     d1={"elements":[{"type":"table","data":[]}]}
-    try:
-        if type(info[0])==Probe:
-            d1["elements"][0]['data'].append([i for i in vars(info[0])])
+    if type(info[0])==Probe or type(info[0])==Primer:
+        d1["elements"][0]['data'].append([i for i in vars(info[0])])
+    
+    else:
+        d1["elements"][0]['data'].append([i for i in info[0]])
+        
+    for i in info:
+        if type(i)==Probe  or type(i)==Primer:
+            d1["elements"][0]['data'].append(i.to_list(percision))
         else:
-            d1["elements"][0]['data'].append([i for i in info[0]])
-            
-        for i in info:
-            if type(i)==Probe:
-                d1["elements"][0]['data'].append(i.to_list(percision))
-            else:
-                d1["elements"][0]['data'].append(list(i.values()))
-        json_to_pdf(d1,output_file,page_size)
-    except:
-        pass
+            d1["elements"][0]['data'].append(list(i.values()))
+    json_to_pdf(d1,output_file,page_size)
+
 
         
 

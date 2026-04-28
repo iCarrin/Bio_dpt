@@ -40,6 +40,9 @@ class Primer():
         self.gc_content = calc_gc_content(sequence)
         self.target_gc = target_gc
         self.rank = abs(self.tm - desired_tm) + abs(self.gc_content - target_gc)
+        
+    def to_list(self,percision):
+        return [ val if  type(val:=self.__getattribute__(i))!=float else round(val,percision)  for i in vars(self)]
    
 
         
@@ -48,8 +51,7 @@ class Probe(Primer):
         super().__init__(snp_id, allele, sequence, direction, thermo, desired_tm, diff, homodimer_goal, hairpin_goal, target_gc)
         self.tm = calc_lna_tm(sequence, thermo.dna_conc, thermo.mv_conc, thermo.dv_conc, thermo.dntp_conc)
 
-    def to_list(self,percision):
-        return [ val if  type(val:=self.__getattribute__(i))!=float else round(val,percision)  for i in vars(self)]
+    
     
 
         
