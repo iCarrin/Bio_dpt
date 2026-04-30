@@ -1,2 +1,7 @@
 __pycache__
 primer_info.log
+clean_primer_samples.txt
+primer_samples.txt
+alleles.txt
+.venv
+.env

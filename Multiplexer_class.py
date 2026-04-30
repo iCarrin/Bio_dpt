@@ -1,11 +1,12 @@
 import primer3
-from Primer_Classes import Primer, Probe, FilterFail
+import logging
 from itertools import combinations,chain
 from Bio.Seq import Seq
-import logging
 from typing import Generator
+
+
+from Primer_Classes import Primer, Probe, FilterFail
 from pdfoutput import create_output_json
-from datetime import datetime
 
 class Multiplexer():
     def __init__(self,snp_df,alleles,**kwarg):
@@ -25,7 +26,7 @@ class Multiplexer():
         self.hairpin_goal=kwarg.get("hairpin_goal",-3.0)
         self.target_gc=kwarg.get("target_gc",50.0)
         self.heterodimer_max = kwarg.get("heterodimer_max",50.0)
-        self.tm_max=kwarg.get("tm_max",40)
+        self.primer_dimer_distance=kwarg.get("primer_dimer_distance",20)
         self.min_probe_len=kwarg.get("min_probe_len",12)
         self.max_probe_len=kwarg.get("max_probe_len",28)
         self.min_primer_len=kwarg.get("min_primer_len",18)
@@ -40,7 +41,7 @@ class Multiplexer():
         if (key:=tuple(sorted((primer1,primer2)))) in memo:
             return memo[key]
         result=self.primer3.calc_heterodimer(primer1,primer2)
-        ans=result.dg > self.heterodimer_max * 1000 and result.tm > self.tm_max
+        ans=result.dg > self.heterodimer_max * 1000 and result.tm > (self.desired_tm + self.diff - self.primer_dimer_distance )
         memo[key]= ans
         return ans 
     
