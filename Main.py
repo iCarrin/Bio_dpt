@@ -23,8 +23,8 @@ def Main():
         ("desired_tm (default 60.0): ", float),("diff (default 2.0): ", float),
         ("homodimer_goal (default -3.0): ", float),("hairpin_goal (default -3.0): ", float),
         ("target_gc (default 50.0): ",float),
-        ("heterodimer_max (default 50.0): ",float),("tm_max (default 40): ",int),
-        ("min_probe_len (default 12): ",int),("max_probe_len (default 20): ",int),
+        ("heterodimer_max (default 50.0): ",float),("primer_dimer_distance (default 20): ",int),
+        ("min_probe_len (default 12): ",int),("max_probe_len (default 28): ",int),
         ("min_primer_len (default 18): ",int),("max_primer_len (default 24): ",int),
         ("min_primer_dist (default 50): ",int),("max_primer_dist (default 75): ",int),
         ("flank_length (default 200): ",int),("pdfoutput_precision (default 2): ", int)
