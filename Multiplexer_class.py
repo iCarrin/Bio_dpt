@@ -385,12 +385,13 @@ class Multiplexer():
         # create_output_json(best_primers,"final_primer.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(fights,"final_fights.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(self.bad_alleles,"final_bad_combined.pdf",(120,350),self.pdfoutput_precision)
-        create_output_json(tre,"final_combined.pdf",(1000,1000),self.pdfoutput_precision)
+        t=create_output_json(tre,"final_combined.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(tre2,"final_probe_combined.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(forword,"final_forword.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(reverse,"final_reverse.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(center,"final_center.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(center_reject,"final_center_reject.pdf",(900,1000),self.pdfoutput_precision)
+        return t
 
 
                     

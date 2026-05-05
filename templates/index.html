@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Heather</title>
     <link href="{{ url_for('static', filename='styles/style.css')}}" rel="stylesheet"/>
+    <script src="{{ url_for('static',filename='script/script.js')}}" defer></script>
 </head>
 <body>
     <h1>Heather</h1>
@@ -31,11 +32,11 @@
             <label for="diff">range of temp</label>
             <input type="text" id="diff" class="settings" value="2.0">
             <label for="primer-dimer-distance">primer_dimer_distance</label>
-            <input type="text" id="primer_dimer_distance" class="settings" value="20">
+            <input type="text" id="primer-dimer-distance" class="settings" value="20">
             <label for="min-probe-len">min_probe_len</label>
             <input type="text" id="min-probe-len" class="settings" value="12">
             <label for="max-probe-len">max_probe_len</label>
-            <input type="text" id="max_probe_len" class="settings" value="28">
+            <input type="text" id="max-probe-len" class="settings" value="28">
             <label for="min-primer-len">min_primer_len</label>
             <input type="text" id="min-primer-len" class="settings" value="18">
             <label for="max-primer-len">max_primer_len</label>
@@ -79,7 +80,7 @@
     </div>
     
         <div class="output-container">
-            <p class="output-paragraph"></p>
+            <p class="output-paragraph" id="output-p"></p>
             <a href="/files/report.pdf" download="my-report.pdf" class="download-link">Download Report</a>
         </div>
 </body>
