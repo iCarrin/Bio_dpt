@@ -28,12 +28,14 @@ class Fetch_Data(threading.Thread):
                 "rel_pos":self.flank_length if t>1 else p
                 } 
 
-def ask_user(rsid,raw_alleles):
+def ask_user(rsid,raw_alleles,ask=True):
 
     print(f"alleles for {rsid}:")
     for i, allele in enumerate(raw_alleles):
         print(f"{i+1}) {allele}")
-    alleles_wanted = input("type the corresponding numbers for the alleles you want separated by spaces, or just \"All\" for all of them: ")
+    alleles_wanted=""
+    if ask:
+        alleles_wanted = input("type the corresponding numbers for the alleles you want separated by spaces, or just \"All\" for all of them: ")
     if alleles_wanted.strip().upper() == "ALL" or alleles_wanted.strip().upper() == "":
         print("using all alleles")
         wanted_alleles= raw_alleles
@@ -94,8 +96,9 @@ def get_rsids():
         return fetched_rsids
 
 
-def get_data(flank_length=800):
-    rsids=list(get_rsids())
+def get_data(flank_length=800,rsids=None,web=False):
+    if not rsids:
+        rsids=list(get_rsids())
     all={}     
     threads=[Fetch_Data(rsids[i1:i1+200],flank_length) for i1 in range(0,len(rsids),200)]
     for i2 in threads:
@@ -107,7 +110,7 @@ def get_data(flank_length=800):
     lock=threading.Lock()
     snp_list=[]
 
-    threads1=[(t:=threading.Thread(target=get_snp_data,args=(i4,lock,snp_list,ask_user(i4["rsid"],i4["allele_str"]))),t.start())[0] for i4 in all.values()]    
+    threads1=[(t:=threading.Thread(target=get_snp_data,args=(i4,lock,snp_list,ask_user(i4["rsid"],i4["allele_str"],not web))),t.start())[0] for i4 in all.values()]    
     for i5 in threads1:
         i5.join()
 

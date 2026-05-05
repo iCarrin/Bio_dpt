@@ -1,5 +1,7 @@
 from Multiplexer_class import Multiplexer
 from fetch_snp_data import get_data
+import re
+re.findall()
 
 """
 How the app works:
