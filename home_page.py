@@ -1,4 +1,5 @@
-from flask import Flask, render_template,request,jsonify,json
+from flask import Flask,Response, render_template,request,jsonify
+import json
 from fetch_snp_data import get_data
 from Multiplexer_class import Multiplexer
 l1=[
@@ -43,8 +44,9 @@ def get_ids():
             s1.add(i.strip())
     
     snp_df, allele_df=get_data(rsids=list(s1),web=True)
-    tre=Multiplexer(snp_df, allele_df,**d1).main()
-    return jsonify({"responce":"ok",'data':tre}),200
+    tre=Multiplexer(snp_df, allele_df,**d1).main(web=True)
+    return Response(tre,mimetype="application/pdf",headers={"Content-Disposition": "inline"})
+    
 
 
 if __name__ == "__main__":

@@ -9,6 +9,9 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from Primer_Classes import Probe,Primer
 
+
+
+
 def json_to_pdf(json_data, output_file,pagesize=(900,375)):
     doc = SimpleDocTemplate(output_file, pagesize=pagesize)
     styles = getSampleStyleSheet()
@@ -34,7 +37,6 @@ def json_to_pdf(json_data, output_file,pagesize=(900,375)):
             ]))
             story.append(table)
             story.append(Spacer(1, 20))
-
     doc.build(story)
 
 def create_output_json(info,output_file,page_size,percision=2):
