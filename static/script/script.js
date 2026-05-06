@@ -1,6 +1,6 @@
 const name = document.location.host
 console.log(name)
-
+let url;
 document.getElementById("submit").addEventListener('click', async () => {
     if (!document.getElementById("file-upload").files[0] && !document.getElementById("input-field").value){
         alert("no values inputed or file uploaded")
@@ -23,9 +23,9 @@ document.getElementById("submit").addEventListener('click', async () => {
     })
 
     if (responce.ok) {
-        const info = await responce.json()
-        console.log(info)
-        document.getElementById("output-p").innerHTML=JSON.stringify(info['data'])
+        t1=await responce.blob()
+        url=URL.createObjectURL(t1)
+        document.getElementById("pdfFrame").src = url;    
     }
 
 })
