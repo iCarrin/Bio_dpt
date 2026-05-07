@@ -28,95 +28,45 @@ class Fetch_Data(threading.Thread):
                 "rel_pos":self.flank_length if t>1 else p
                 } 
 
-def ask_user(rsid,raw_alleles,ask=True):
-
-    print(f"alleles for {rsid}:")
-    for i, allele in enumerate(raw_alleles):
-        print(f"{i+1}) {allele}")
-    alleles_wanted=""
-    if ask:
-        alleles_wanted = input("type the corresponding numbers for the alleles you want separated by spaces, or just \"All\" for all of them: ")
-    if alleles_wanted.strip().upper() == "ALL" or alleles_wanted.strip().upper() == "":
-        print("using all alleles")
-        wanted_alleles= raw_alleles
-        return wanted_alleles
-    elif re.fullmatch(r'[0-9\s]+', alleles_wanted):
-        indices = [int(x) for x in alleles_wanted.strip().split(" ")]
-        if max(indices) > len(raw_alleles) or min(indices) < 1:
-            print("you asked for an allele that wasn't in the list")
-            return ask_user(rsid,raw_alleles)
-        else:
-            wanted_alleles=[raw_alleles[i-1] for i in indices]
-            return wanted_alleles
-    else:
-        print("you typed more than just numbers and spaces. Try again")
-        return ask_user(rsid,raw_alleles)
-
-
-def get_snp_data(rsid_info,lock,snp_list,wanted_alleles):
-    seq_url = f"{ENSEMBL_REST}/sequence/region/human/{rsid_info["chom"]}:{rsid_info["start"]}..{rsid_info["end"]}:1?"
-    seq_resp = requests.get(seq_url, headers={"Content-Type": "text/plain"})
+def get_snp_data(rsid_info,lock,snp_list,info):
+    seq_url = f"{ENSEMBL_REST}/sequence/region/human"
+    seq_resp = requests.post(seq_url, headers={ "Content-Type" : "application/json", "Accept" : "application/json"},data=json.dumps({"regions" :rsid_info}))
     seq_resp.raise_for_status()
-    template_seq = seq_resp.text.strip()
-    for allele in wanted_alleles:
-        # Validate that allele contains valid DNA characters only
-        if not re.fullmatch("[ACGTNacgtn]+", allele):
-            print(f"Skipping non-standard allele '{allele}' for {rsid_info["rsid"]}")
-            continue
-        modified_seq = template_seq[:rsid_info["rel_pos"]] + allele.upper() + template_seq[rsid_info["rel_pos"] + 1:]
-        if modified_seq[0]!='N':
-            with lock:
-                snp_list.append({
-                    "snpID": rsid_info["rsid"],
-                    "allele": allele.upper(),
-                    "sequence": modified_seq,
-                    "position": rsid_info["rel_pos"]
-                })
+    resp = seq_resp.json()
+    for i in resp:
+        tre=info[i["query"]]
+        for allele in tre["allele_str"]:
+            # Validate that allele contains valid DNA characters only
+            if not re.fullmatch("[ACGTNacgtn]+", allele):
+                print(f"Skipping non-standard allele '{allele}' for {tre["rsid"]}")
+                continue
+            modified_seq = i["seq"][:tre["rel_pos"]] + allele.upper() + i["seq"][tre["rel_pos"] + 1:]
+            if modified_seq[0]!='N':
+                with lock:
+                    snp_list.append({
+                        "snpID": tre["rsid"],
+                        "allele": allele.upper(),
+                        "sequence": modified_seq,
+                        "position": tre["rel_pos"]
+                    })
 
 
-def get_rsids():
-    file=input("load from file (y/n) ")
-    if file.lower() in ['y','yes']:
-        filename= input("input file path to load ")
-        with open(filename) as txt:
-            return {i.strip() for i in txt}
-    else:
-        fetched_rsids=set()
-        while True:
-            rsid=input("enter rsid type 'exit' to exit: ")
-            if rsid.lower()!="exit":
-                if re.fullmatch(r'rs\d+', rsid.strip().lower()):
-                    fetched_rsids.add(rsid)
-                else:
-                    print("that wasn't a real answer")
-                    pass
-            else:
-                break
-        print(fetched_rsids)
-        return fetched_rsids
-
-
-def get_data(flank_length=800,rsids=None,web=False):
-    if not rsids:
-        rsids=list(get_rsids())
+def get_data(flank_length=800,rsids=None):
     all={}     
     threads=[Fetch_Data(rsids[i1:i1+200],flank_length) for i1 in range(0,len(rsids),200)]
     for i2 in threads:
-        i2.start()
-        
+        i2.start()   
     for i3 in threads:
         i3.join()
         all|=i3.result
     lock=threading.Lock()
     snp_list=[]
-
-    threads1=[(t:=threading.Thread(target=get_snp_data,args=(i4,lock,snp_list,ask_user(i4["rsid"],i4["allele_str"],not web))),t.start())[0] for i4 in all.values()]    
-    for i5 in threads1:
-        i5.join()
-
+    info={}
+    l1=[]
+    for i in all.values():
+        l1.append(t:=f"{i["chom"]}:{i["start"]}..{i["end"]}:1")
+        info[t]=i
+    get_snp_data(l1,lock,snp_list,info)
     return snp_list, all
-
-
-   
 
 

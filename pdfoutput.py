@@ -54,7 +54,6 @@ def create_output_json(info,output_file,page_size,percision=2):
         else:
             d1["elements"][0]['data'].append(list(i.values()))
     json_to_pdf(d1,output_file,page_size)
-    return d1
 
 
         

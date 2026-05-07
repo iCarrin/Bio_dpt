@@ -359,7 +359,7 @@ class Multiplexer():
                 self.logger.critical(f'{primer_king.snpID} allele {primer_king.allele} had no useable far primers')
                 raise Exception("you've tried every possible primer. What have you done??")
                 
-    def main(self,web=False):
+    def main(self):
         """
         Main function to generate, filter, rank, pair, and export primers.
         TODO: Add comprehensive error handling and logging.
@@ -383,33 +383,20 @@ class Multiplexer():
         tre.sort(key=lambda x : x.snpID)
         # tre2.sort(key=lambda x : x.snpID)
         print(self.bad_alleles)
-        if not web:
-            # print(forword,reverse,center,center_reject,sep="\n")
-            # create_output_json(best_primers,"final_primer.pdf",(1000,1000),self.pdfoutput_precision)
-            # create_output_json(fights,"final_fights.pdf",(1000,1000),self.pdfoutput_precision)
-            # create_output_json(self.bad_alleles,"final_bad_combined.pdf",(120,350),self.pdfoutput_precision)
-            t=create_output_json(tre,"final_combined.pdf",(1000,1000),self.pdfoutput_precision)
-            # create_output_json(tre2,"final_probe_combined.pdf",(1000,1000),self.pdfoutput_precision)
-            # create_output_json(forword,"final_forword.pdf",(1000,1000),self.pdfoutput_precision)
-            # create_output_json(reverse,"final_reverse.pdf",(1000,1000),self.pdfoutput_precision)
-            # create_output_json(center,"final_center.pdf",(1000,1000),self.pdfoutput_precision)
-            # create_output_json(center_reject,"final_center_reject.pdf",(900,1000),self.pdfoutput_precision)
-            return t
-        else:
-            # print(forword,reverse,center,center_reject,sep="\n")
-            # create_output_json(best_primers,"final_primer.pdf",(1000,1000),self.pdfoutput_precision)
-            # create_output_json(fights,"final_fights.pdf",(1000,1000),self.pdfoutput_precision)
-            # create_output_json(self.bad_alleles,"final_bad_combined.pdf",(120,350),self.pdfoutput_precision)
-            buffer=BytesIO()
-            create_output_json(tre,buffer,(1000,1000),self.pdfoutput_precision)
-            t=buffer.getvalue()
-            buffer.close()
-            # create_output_json(tre2,"final_probe_combined.pdf",(1000,1000),self.pdfoutput_precision)
-            # create_output_json(forword,"final_forword.pdf",(1000,1000),self.pdfoutput_precision)
-            # create_output_json(reverse,"final_reverse.pdf",(1000,1000),self.pdfoutput_precision)
-            # create_output_json(center,"final_center.pdf",(1000,1000),self.pdfoutput_precision)
-            # create_output_json(center_reject,"final_center_reject.pdf",(900,1000),self.pdfoutput_precision)
-            return t
+        buffer=BytesIO()
+        create_output_json(tre,buffer,(1000,1000),self.pdfoutput_precision)
+        t=buffer.getvalue()
+        buffer.close()
+        # print(forword,reverse,center,center_reject,sep="\n")
+        # create_output_json(best_primers,"final_primer.pdf",(1000,1000),self.pdfoutput_precision)
+        # create_output_json(fights,"final_fights.pdf",(1000,1000),self.pdfoutput_precision)
+        # create_output_json(self.bad_alleles,"final_bad_combined.pdf",(120,350),self.pdfoutput_precision)
+        # create_output_json(tre2,"final_probe_combined.pdf",(1000,1000),self.pdfoutput_precision)
+        # create_output_json(forword,"final_forword.pdf",(1000,1000),self.pdfoutput_precision)
+        # create_output_json(reverse,"final_reverse.pdf",(1000,1000),self.pdfoutput_precision)
+        # create_output_json(center,"final_center.pdf",(1000,1000),self.pdfoutput_precision)
+        # create_output_json(center_reject,"final_center_reject.pdf",(900,1000),self.pdfoutput_precision)
+        return t
 
 
 

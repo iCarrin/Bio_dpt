@@ -1,15 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Heather</title>
-    <link href="{{ url_for('static', filename='styles/style.css')}}" rel="stylesheet"/>
+    <link href="{{ url_for('static', filename='styles/style.css')}}" rel="stylesheet" />
     <script src="{{ url_for('static',filename='script/script.js')}}" defer></script>
 </head>
+
 <body>
     <h1>Heather</h1>
-    
+
     <div class="input-container">
         <input type="text" id="input-field" placeholder="Enter rsids here"><br>
         <div class="below-input-field">
@@ -75,14 +77,13 @@
                 <input type="text" id="tm-method" class="settings" value="santalucia">
                 <label for="salt-corrections-method">salt_corrections_method</label>
                 <input type="text" id="salt-corrections-method" class="settings" value="owczarzy">
-            </div> 
+            </div>
         </details>
     </div>
-    
-        <div class="output-container">
-            <!-- <p class="output-paragraph" id="output-p"></p> -->
-             <iframe id="pdfFrame" width="100%" height="600px"></iframe>
-            <a href="/files/report.pdf" download="my-report.pdf" class="download-link">Download Report</a>
-        </div>
+
+    <div class="output-container">
+        <embed id="pdfFrame" type="application/pdf" width="100%" height="600px">
+    </div>
 </body>
+
 </html>

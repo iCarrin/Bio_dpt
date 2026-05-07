@@ -2,7 +2,7 @@ const name = document.location.host
 console.log(name)
 let url;
 document.getElementById("submit").addEventListener('click', async () => {
-    if (!document.getElementById("file-upload").files[0] && !document.getElementById("input-field").value){
+    if (!document.getElementById("file-upload").files[0] && !document.getElementById("input-field").value) {
         alert("no values inputed or file uploaded")
         return
     }
@@ -23,9 +23,9 @@ document.getElementById("submit").addEventListener('click', async () => {
     })
 
     if (responce.ok) {
-        t1=await responce.blob()
-        url=URL.createObjectURL(t1)
-        document.getElementById("pdfFrame").src = url;    
+        t1 = await responce.blob()
+        url = URL.createObjectURL(t1)
+        document.getElementById("pdfFrame").src = url;
     }
 
 })
