@@ -48,7 +48,8 @@ h1 {
     border: 4px var(--accent-1) solid;
     border-radius: 16px;
     box-shadow: 4px 4px 3px var(--accent-2);
-    padding: auto;
+    padding: 10px;
+    overflow-wrap: break-word;
 }
 
 .below-input-field {
@@ -107,15 +108,6 @@ summary {
 
 }
 
-.output-paragraph {
-    min-width: 50vw;
-    min-height: 30vh;
-    border: 4px, var(--accent-1), solid;
-    border-radius: 16px;
-    box-shadow: 4px 4px 3px var(--accent-2);
-    overflow-wrap: break-word;
-
-}
 
 .download-link {
     border: 2px black solid;

@@ -4,16 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Heather</title>
+    <title>ASPPDaMfSD</title>
     <link href="{{ url_for('static', filename='styles/style.css')}}" rel="stylesheet" />
     <script src="{{ url_for('static',filename='script/script.js')}}" defer></script>
 </head>
 
 <body>
-    <h1>Heather</h1>
+    <h1>Allele specific primer/ probe designer and multiplexer for snp detection</h1>
 
     <div class="input-container">
-        <input type="text" id="input-field" placeholder="Enter rsids here"><br>
+        <textarea id="input-field" rows="15" cols="100" placeholder="Enter rsids here"></textarea>
+        <!-- <input type="text" id="input-field" placeholder="Enter rsids here"><br> -->
         <div class="below-input-field">
             <input type="file" id="file-upload" value="Drop text file here">
             <input type="submit" id="submit" value="Submit">
@@ -81,7 +82,7 @@
         </details>
     </div>
 
-    <div class="output-container">
+    <div class="output-container" id="output">
         <embed id="pdfFrame" type="application/pdf" width="100%" height="600px">
     </div>
 </body>
