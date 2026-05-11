@@ -42,8 +42,7 @@ def get_ids():
     if inp:
         for i in inp.split():
             s1.add(i.strip())
-    
-    snp_df, allele_df=get_data(rsids=list(s1))
+    snp_df, allele_df=get_data(list(s1))
     tre=Multiplexer(snp_df, allele_df,**d1).main()
     return Response(tre,mimetype="application/pdf",headers={"Content-Disposition": "inline"})
     

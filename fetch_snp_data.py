@@ -53,7 +53,7 @@ def get_snp_data(rsid_info,lock,snp_list,info):
                     })
 
 
-def get_data(flank_length=800,rsids=None):
+def get_data(rsids,flank_length=800):
     all={}     
     threads=[Fetch_Data(rsids[i1:i1+200],flank_length) for i1 in range(0,len(rsids),200)]
     for i2 in threads:
@@ -68,7 +68,14 @@ def get_data(flank_length=800,rsids=None):
     for i in all.values():
         l1.append(t:=f"{i["chom"]}:{i["start"]}..{i["end"]}:1")
         info[t]=i
-    get_snp_data(l1,lock,snp_list,info)
+    if len(l1)>50:
+        l2=[threading.Thread(target=get_snp_data,args=(l1[i:i+50],lock,snp_list,info)) for i in range(0,len(l1),50)]
+        for i in l2:
+            i.start()
+        for i in l2:
+            i.join()
+    else:
+        get_snp_data(l1,lock,snp_list,info)
     return snp_list, all
 
 

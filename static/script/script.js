@@ -1,7 +1,46 @@
 const name = document.location.host
 console.log(name)
 let url;
+
+function create_spinner() {
+    const spinner = document.createElement("div");
+
+    // Style the spinner
+    spinner.style.width = "50px";
+    spinner.style.height = "50px";
+    spinner.style.border = "6px solid #ddd";
+    spinner.style.borderTop = "6px solid #3498db";
+    spinner.style.borderRadius = "50%";
+    spinner.style.animation = "spin 1s linear infinite";
+    spinner.style.margin = "20px auto";
+    spinner.id="spinner"
+
+    // Add spinner to page
+    // document.getElementById("output").appendChild(spinner);
+    document.getElementById("output").prepend(spinner)
+
+    // Create animation using JS
+    const style = document.createElement("style");
+    style.textContent = `
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+`;
+
+    document.head.appendChild(style);
+}
+
+function remove_spinner() {
+     document.getElementById("spinner").remove()
+}
+
 document.getElementById("submit").addEventListener('click', async () => {
+    create_spinner()
     if (!document.getElementById("file-upload").files[0] && !document.getElementById("input-field").value) {
         alert("no values inputed or file uploaded")
         return
@@ -21,7 +60,7 @@ document.getElementById("submit").addEventListener('click', async () => {
     responce = await fetch(`http://${name}/api/gids`, {
         method: 'POST', body: formData
     })
-
+    remove_spinner()
     if (responce.ok) {
         t1 = await responce.blob()
         url = URL.createObjectURL(t1)
