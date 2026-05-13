@@ -36,13 +36,14 @@ class Multiplexer():
         self.pdfoutput_precision=kwarg.get("pdfoutput_precision",2)
         self.bad_alleles = []
         self.logger = logging.getLogger(__name__)
+        self.memo={}
 
-    def _check_heterodimer(self,primer1,primer2,memo={}):
-        if (key:=tuple(sorted((primer1,primer2)))) in memo:
-            return memo[key]
+    def _check_heterodimer(self,primer1,primer2):
+        if (key:=tuple(sorted((primer1,primer2)))) in self.memo:
+            return self.memo[key]
         result=self.primer3.calc_heterodimer(primer1,primer2)
         ans=result.dg > self.heterodimer_max * 1000 and result.tm > (self.desired_tm + self.diff - self.primer_dimer_distance )
-        memo[key]= ans
+        self.memo[key]= ans
         return ans 
     
     def _multiplex_primers(self,snp_site_probes):

@@ -1,4 +1,3 @@
-import primer3
 from lna_tm import calc_lna_tm
 def calc_gc_content(sequence: str):
     gc_total = sum(1 for b in sequence if b in ('G', 'C'))
