@@ -1,4 +1,4 @@
-from flask import Flask,Response, render_template,request,jsonify
+from flask import Flask,Response, render_template,request
 import json
 from fetch_snp_data import get_data
 from Multiplexer_class import Multiplexer
