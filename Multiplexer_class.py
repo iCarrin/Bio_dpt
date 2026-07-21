@@ -27,11 +27,11 @@ class Multiplexer():
         self.heterodimer_max = kwarg.get("heterodimer_max",50.0)
         self.tm_max=kwarg.get("tm_max",40)
         self.min_probe_len=kwarg.get("min_probe_len",12)
-        self.max_probe_len=kwarg.get("max_probe_len",28)
+        self.max_probe_len=kwarg.get("max_probe_len",20)
         self.min_primer_len=kwarg.get("min_primer_len",18)
         self.max_primer_len=kwarg.get("max_primer_len",24)
         self.min_primer_dist=kwarg.get("min_primer_dist",50)
-        self.max_primer_dist=kwarg.get("max_primer_dist",250)
+        self.max_primer_dist=kwarg.get("max_primer_dist",75)
         self.pdfoutput_precision=kwarg.get("pdfoutput_precision",2)
         self.bad_alleles = []
         self.logger = logging.getLogger(__name__)
@@ -61,16 +61,17 @@ class Multiplexer():
             
             temp_pos = None
             temp_neg = None
-            flipped = False
+
             
             while True:
                 for direction in ['forward', 'reverse']:
-                    for far in self.generate_matching_primers(probe, direction, flipped):#loop every possible primer given 
+                    for far in self.generate_matching_primers(probe, direction):#loop every possible primer given 
                         for entry in chain(snp_site_probes, pos_far_primers, neg_far_primers): #compare this far primer against all close and already found far primers
                             # calculate it's heterodimer value every other primer far and close
                             if self._check_heterodimer(far.sequence, entry.sequence):#it only fails if it has a delta gibbs lower than the max AND the dimer will happen at temp that will bother us
                                 break #stop checking early
                         else: #only if it got through the check everything loop
+                            
                             if direction == 'forward': 
                                 temp_pos = far # we add it to the final list
                             else: 
@@ -81,25 +82,21 @@ class Multiplexer():
                     
                 if temp_pos and temp_neg :# we've run through every primer we can try
                     break
-                elif not flipped:
-                    print("we're in the end game")
-                    flipped = True
                 else:
-                    print("all hope is lost")
+                    print(f"all hope is lost for probe: {probe.snpID} allele: {probe.allele}")
 
                     for entry in snp_site_probes:
                         if entry.snpID == probe.snpID:
-                            self.bad_alleles.append({"snpid":probe.snpID, "allele":entry.allele})
-                            self.bad_alleles.append({"snpid":probe.snpID, "allele":entry.allele})
+                            self.bad_alleles.append({"snpid":probe.snpID, "allele":entry.allele, "reason":"probe couldn't find primers"})
                     print(f"snpID: {probe.snpID} (and all associated alleles) didn't make the list. It couldn't find far primers to that could work")
                     break
-
-            pos_far_primers.append(temp_pos) 
-            neg_far_primers.append(temp_neg)
+            if temp_pos is not None and temp_neg is not None:
+                pos_far_primers.append(temp_pos) 
+                neg_far_primers.append(temp_neg)
         
 
         if not (len(done_snpid) == len(neg_far_primers) == len(pos_far_primers)):
-            print(f'close primers after removal {len(snp_site_probes)}')
+            print(f'probes after removal {len(snp_site_probes)}')
             print(f'neg fars {len(neg_far_primers)}')
             print(f'pos fars {len(pos_far_primers)}')
         
@@ -190,14 +187,19 @@ class Multiplexer():
         
         #this makes a list of where the failures still are
         remaining_stubborn = [i for i in range(list_size) if alleles_prob_count[i] < 0]
+
+        for i in remaining_stubborn:
+            bad_guy = _get_next_probe(i)
+            self.bad_alleles.append({"snpid":bad_guy.snpID, "allele":bad_guy.allele, "reason":"probe on probe heterodimer"})
+
         #this makes that into a combo list so that the final loop only has to look at those locations
-        fight_combos = combinations(remaining_stubborn,2)
+        # fight_combos = combinations(remaining_stubborn,2)
         
-        for left, right in fight_combos:#
-            self.bad_alleles.append({"snpid":(l:=_get_next_probe(left)).snpID, "allele":l.allele}) 
-            self.bad_alleles.append({"snpid":(r:=_get_next_probe(right)).snpID, "allele":r.allele})
+        # for left, right in fight_combos:#
+        #     self.bad_alleles.append({"snpid":(l:=_get_next_probe(left)).snpID, "allele":l.allele}) 
+        #     self.bad_alleles.append({"snpid":(r:=_get_next_probe(right)).snpID, "allele":r.allele})
             
-        probes_that_work = [_get_next_probe(i) for i in range(list_size)]
+        probes_that_work = [_get_next_probe(i) for i in range(list_size) ]
 
         return probes_that_work
     
@@ -257,7 +259,6 @@ class Multiplexer():
                     # print(e)
                     pass
                     # logging.error(f"{snp_id} allele: {allele} had no primers that passed the filtering")
-        
         else:
             print(f"The length of your {direction} primer wasn't long enough. \nYou needed one at least {self.min_primer_len} long and it ended up only being {len(seq)}")
             self.logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {self.min_primer_len} long and it ended up only being {len(seq)}")
@@ -291,21 +292,19 @@ class Multiplexer():
                 all_probes.append(allele_probes)
             else:
                 # print(f"snp: {snp["snpID"]} allele: {snp["allele"]} didn't make the cut")
-                self.bad_alleles.append({"snpid":snp["snpID"], "allele":snp["allele"]})
+                self.bad_alleles.append({"snpid":snp["snpID"], "allele":snp["allele"], "reason":"probe wouldn't generate"})
         
         return all_probes
 
-    def generate_matching_primers(self,primer_king, direction, flipped, primer_start = 0): 
+    def generate_matching_primers(self,primer_king, direction, primer_start = 0): 
         """
-            Generate matching primers for top  allele-specific primers.
-            TODO: Optimize primer pairing.
-            - Use primer3-py's designPrimers for more efficient pairing.
-            - Add checks for primer pair compatibility (e.g., Tm difference < 5Â°C).
+            Generate matching primers for best allele-specific probe.
         """
 
-        if len(self.snp_df[0]['sequence']) < (self.min_primer_dist+17)/2:
-            raise Exception("your sequence is so short it won't allow for even 1 primer to be maid. " \
-            "Lower your min distance to have the API call for a longer string")
+        if len(self.snp_df[0]['sequence']) < 1+(self.min_primer_dist+self.min_primer_len)*2:
+            raise Exception("your sequence is so short it won't allow for even the shortest of primers at the minimum distance to be made" \
+            "Lower your min distance or have the API call for a longer string")
+        
         snp_dict = {}   
         for snp in self.snp_df:
             if snp['snpID'] == primer_king.snpID: # we only search for a matching SNP because we aren't even using the allele section    
@@ -316,12 +315,10 @@ class Multiplexer():
           
         middle = snp_dict['position']
         whole_sequence = snp_dict['sequence']
-        #get the far sequence and reverse complement is if necessary
+        #get the far sequence and reverse complement if necessary
         if direction == "forward":
             far_sequence = whole_sequence[middle+self.min_primer_dist:middle+self.max_primer_dist]#everything from snp (middle) plus start dist cutting off at max if necessary (end is exclusive so +1)
-            if not flipped:
-                far_sequence = str(Seq(far_sequence).reverse_complement()) #change to sequence object, reverse complement it, and change it back to string 
-            r'''                                  _______  
+            '''                                  _______  
                                                 |______\_
                                                 |________\ what we make eventually 
             _________________________|___________=====================("===" means reverse complement DNA)
@@ -331,9 +328,8 @@ class Multiplexer():
             '''       
         elif direction == "reverse":
             far_sequence = whole_sequence[middle-self.max_primer_dist:middle-self.min_primer_dist-1]
-            if flipped:
-                far_sequence = str(Seq(far_sequence).reverse_complement())
-            r'''
+
+            '''
                                     SNP
             ____________________________|____________________________
                         __/______|           
@@ -351,12 +347,13 @@ class Multiplexer():
             # format even if it was reversed in real life, so no need to flip it back. The note that it should be reversed is enough.
             # each one will walk back from the right side 
             trial_snip = far_sequence[-(self.max_primer_len+primer_start) : -primer_start or None] # this takes a chunk to feed into a primer generator    
-            try:#filter strict mode will throw an error so we use try except
+            try:
                 yield from self._make_primers(trial_snip,primer_king.snpID, primer_king.allele, direction)
-                primer_start += 6
+                primer_start += 1
             except ValueError as e:
-                self.logger.critical(f'{primer_king.snpID} allele {primer_king.allele} had no useable far primers')
-                raise Exception("you've tried every possible primer. What have you done??")
+                self.logger.warning(f'{primer_king.snpID} allele {primer_king.allele} had no useable far primers')
+                "you've tried every possible primer. What have you done??"
+                break
                 
     def main(self):
         """
@@ -381,6 +378,7 @@ class Multiplexer():
         tre2= best_probes ####this might not be the right course of action to add the probes into the mix
         tre.sort(key=lambda x : x.snpID)
         # tre2.sort(key=lambda x : x.snpID)
+        print("these alleles didn't make it")
         print(self.bad_alleles)
         # print(forword,reverse,center,center_reject,sep="\n")
         # create_output_json(best_primers,"final_primer.pdf",(1000,1000),self.pdfoutput_precision)

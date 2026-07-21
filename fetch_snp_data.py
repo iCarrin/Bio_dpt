@@ -2,6 +2,8 @@ import requests,json,re
 import threading
 ENSEMBL_REST = "https://rest.ensembl.org"
 
+# https://rest.ensembl.org/variation/homo_sapiens/rs1799971
+
 class Fetch_Data(threading.Thread):
     def __init__(self,rsids,flank_length=800):
         super().__init__()
@@ -23,8 +25,8 @@ class Fetch_Data(threading.Thread):
                 "rsid":rsid,
                 "chom":v["mappings"][0]["seq_region_name"],
                 "allele_str":possible_alleles,
-                "start":(t:=max(1,p-800)),
-                "end":p+800,
+                "start":(t:=max(1,p-self.flank_length)),
+                "end":p+self.flank_length,
                 "rel_pos":self.flank_length if t>1 else p
                 } 
 

@@ -7,7 +7,7 @@ step 1. Fetch_SNP_Data takes in a list of rsIDs and the length to either side of
     it then makes an api call for the SNP and gets all alleles associated with it. It then makes 
     another call to get the DNA strand and puts the different alleles in the SNP location and it 
     count(allele) number of strands
-
+    Diangnose and Automate 
 """
 
 def Main():
@@ -24,10 +24,10 @@ def Main():
         ("homodimer_goal (default -3.0): ", float),("hairpin_goal (default -3.0): ", float),
         ("target_gc (default 50.0): ",float),
         ("heterodimer_max (default 50.0): ",float),("tm_max (default 40): ",int),
-        ("min_probe_len (default 12): ",int),("max_probe_len (default 28): ",int),
+        ("min_probe_len (default 12): ",int),("max_probe_len (default 20): ",int),
         ("min_primer_len (default 18): ",int),("max_primer_len (default 24): ",int),
-        ("min_primer_dist (default 50): ",int),("max_primer_dist (default 250): ",int),
-        ("flank_length (default 800): ",int),("pdfoutput_precision (default 2): ", int)
+        ("min_primer_dist (default 50): ",int),("max_primer_dist (default 75): ",int),
+        ("flank_length (default 200): ",int),("pdfoutput_precision (default 2): ", int)
         ]:
         if (t:=input(i)):
             d1[i.split()[0]]=ty(t)
