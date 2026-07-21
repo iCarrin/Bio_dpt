@@ -1,7 +1,7 @@
 import primer3
 from lna_tm import calc_lna_tm
 def calc_gc_content(sequence: str):
-    gc_total = sum(1 for b in sequence if b in ('G', 'C'))
+    gc_total = sum(1 for b in sequence if b in ('G', 'C', 'c', 'g'))
     return round(gc_total/len(sequence), 2)
 
 class FilterFail(Exception):
@@ -12,9 +12,12 @@ class FilterFail(Exception):
 
 class Primer():
 
+    def _calc_tm(self, sequence, thermo):
+        return thermo.calc_tm(sequence)
+
     def __init__(self, snp_id, allele, sequence, direction, thermo, desired_tm: float, diff: float, homodimer_goal: float, hairpin_goal: float, target_gc: float):
-        
-        self.tm = thermo.calc_tm(sequence)
+
+        self.tm = self._calc_tm(sequence, thermo)
         if self.tm < (desired_tm-diff):
             raise FilterFail(snp_id, allele, "lower Tm", self.tm)
         if self.tm > (desired_tm+diff):
@@ -25,13 +28,15 @@ class Primer():
         self.homodimer_dg = __homodimer_thermo.dg
         if self.homodimer_dg < homodimer_goal* 1000 and self.homodimer_tm > desired_tm-diff-20:
             raise FilterFail(snp_id, allele, "homodimer")
-        
+        self.homodimer_dg = round(self.homodimer_dg, 2)
+
         __hairpin_thermo = thermo.calc_hairpin(sequence)
         self.hairpin_tm = __hairpin_thermo.tm
         self.hairpin_dg = __hairpin_thermo.dg
         if self.hairpin_dg < hairpin_goal* 1000 and self.hairpin_tm > desired_tm-diff-20:
             raise FilterFail(snp_id, allele, "hairpin")
         
+        self.hairpin_dg = round(self.hairpin_dg, 2)
         self.snpID = snp_id
         self.allele = allele
         self.direction = direction
@@ -40,18 +45,19 @@ class Primer():
         self.gc_content = calc_gc_content(sequence)
         self.target_gc = target_gc
         self.rank = abs(self.tm - desired_tm) + abs(self.gc_content - target_gc)
-        
     def to_list(self,percision):
         return [ val if  type(val:=self.__getattribute__(i))!=float else round(val,percision)  for i in vars(self)]
    
 
         
 class Probe(Primer):
+    def _calc_tm(self, sequence, thermo):
+        return calc_lna_tm(sequence, thermo.dna_conc, thermo.mv_conc, thermo.dv_conc, thermo.dntp_conc)
+    
     def __init__(self, snp_id, allele, sequence, direction, thermo, desired_tm: float, diff: float, homodimer_goal: float, hairpin_goal: float , target_gc: float):
         super().__init__(snp_id, allele, sequence, direction, thermo, desired_tm, diff, homodimer_goal, hairpin_goal, target_gc)
-        self.tm = calc_lna_tm(sequence, thermo.dna_conc, thermo.mv_conc, thermo.dv_conc, thermo.dntp_conc)
+  
 
-    
     
 
         

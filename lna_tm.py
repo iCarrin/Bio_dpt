@@ -3,7 +3,8 @@ from collections import namedtuple
 HSG = namedtuple('HSG', ['H','S', 'G'])
 
 dublets = {
-            #         cal/mol     cal/k*mol
+
+        #         cal/mol     cal/k*mol
             'AA': HSG(H=-7900,    S=-22.2,   G=-1.02),
             'TT': HSG(H=-7900,    S=-22.2,   G=-1.02),
             'AT': HSG(H=-7200,    S=-20.4,   G=-0.88),
@@ -20,40 +21,40 @@ dublets = {
             'GC': HSG(H=-9800,    S=-24.4,   G=-2.09),
             'GG': HSG(H=-8000,    S=-19.9,   G=-2.28),
             'CC': HSG(H=-8000,    S=-19.9,   G=-2.28),
-            #locked then normal
-            'aA': HSG(H=707,   S=2.477,   G=-0.092),
-            'aC': HSG(H=1131,   S=4.064,   G=-0.122),
-            'aG': HSG(H=264,   S=2.613,   G=-0.561),
-            'aT': HSG(H=2282,   S=7.457,   G=-0.007),
-            'cA': HSG(H=1049,   S=4.320,   G=-0.270),
-            'cC': HSG(H=2096,   S=7.996,   G=-0.457),
-            'cG': HSG(H=785,   S=3.709,   G=-0.332),
-            'cT': HSG(H=708,   S=4.175,   G=-0.666),
-            'gA': HSG(H=3162,   S=10.544,  G=-0.072),
-            'gC': HSG(H=-360,  S=-0.251,  G=-0.414),
-            'gG': HSG(H=-2844,  S=-6.680,  G=-0.700),
-            'gT': HSG(H=-212,  S=0.073,   G=-0.194),
-            'tA': HSG(H=-46,  S=1.562,   G=-0.563),
-            'tC': HSG(H=1893,   S=6.685,   G=-0.208),
-            'tG': HSG(H=-1540,  S=-3.044,  G=-0.548),
-            'tT': HSG(H=1528,   S=5.298,   G=-0.130),
-            #Normal then locked
-            'Aa': HSG(H=992,   S=4.065,   G=-0.396),
-            'Ac': HSG(H=2890,   S=10.576,  G=-0.390),
-            'Ag': HSG(H=-1200,  S=-1.826,  G=-0.603),
-            'At': HSG(H=1816,   S=6.863,   G=-0.309),
-            'Ca': HSG(H=1358,   S=4.367,   G=0.046),
-            'Cc': HSG(H=2063,   S=7.565,   G=-0.404),
-            'Cg': HSG(H=-276,  S=-0.718,  G=-0.003),
-            'Ct': HSG(H=-1671,  S=-4.070,  G=-0.409),
-            'Ga': HSG(H=444,   S=2.898,   G=-0.437),
-            'Gc': HSG(H=-925,  S=-1.111,  G=-0.535),
-            'Gg': HSG(H=-943,  S=-0.933,  G=-0.666),
-            'Gt': HSG(H=-635,  S=-0.342,  G=-0.520),
-            'Ta': HSG(H=1591,   S=5.281,   G=0.004),
-            'Tc': HSG(H=609,   S=3.169,   G=-0.396),
-            'Tg': HSG(H=2165,   S=7.163,   G=-0.106),
-            'Tt': HSG(H=2326,   S=8.051,   G=-0.212),
+            #Locked Then Normal (+XY)
+            'aA': HSG(H=-7193,  S=-19.723, G=-1.09),
+            'aC': HSG(H=-7269,  S=-18.336, G=-1.56),
+            'aG': HSG(H=-7536,  S=-18.387, G=-1.84),
+            'aT': HSG(H=-4918,  S=-12.943, G=-0.89),
+            'cA': HSG(H=-7451,  S=-18.380, G=-1.72),
+            'cC': HSG(H=-5904,  S=-11.904, G=-2.30),
+            'cG': HSG(H=-9815,  S=-23.491, G=-2.50),
+            'cT': HSG(H=-7092,  S=-16.825, G=-1.95),
+            'gA': HSG(H=-5038,  S=-11.656, G=-1.37),
+            'gC': HSG(H=-10160, S=-24.651, G=-2.65),
+            'gG': HSG(H=-10844, S=-26.580, G=-2.54),
+            'gT': HSG(H=-8612,  S=-22.327, G=-1.63),
+            'tA': HSG(H=-7246,  S=-19.738, G=-1.14),
+            'tC': HSG(H=-6307,  S=-15.515, G=-1.51),
+            'tG': HSG(H=-10040, S=-25.744, G=-2.00),
+            'tT': HSG(H=-6372,  S=-16.902, G=-1.13),
+            #Normal Then Locked (X+Y)
+            'Aa': HSG(H=-6908,  S=-18.135, G=-1.40),
+            'Ac': HSG(H=-5510,  S=-11.824, G=-1.83),
+            'Ag': HSG(H=-9000,  S=-22.826, G=-1.88),
+            'At': HSG(H=-5384,  S=-13.537, G=-1.19),
+            'Ca': HSG(H=-7142,  S=-18.333, G=-1.40),
+            'Cc': HSG(H=-5937,  S=-12.335, G=-2.24),
+            'Cg': HSG(H=-10876, S=-27.918, G=-2.17),
+            'Ct': HSG(H=-9471,  S=-25.070, G=-1.69),
+            'Ga': HSG(H=-7756,  S=-19.302, G=-1.74),
+            'Gc': HSG(H=-10725, S=-25.511, G=-2.78),
+            'Gg': HSG(H=-8943,  S=-20.833, G=-2.51),
+            'Gt': HSG(H=-9035,  S=-22.742, G=-1.96),
+            'Ta': HSG(H=-5609,  S=-16.019, G=-0.58),
+            'Tc': HSG(H=-7591,  S=-19.031, G=-1.70),
+            'Tg': HSG(H=-6335,  S=-15.537, G=-1.56),
+            'Tt': HSG(H=-5574,  S=-14.149, G=-1.21),
             #Locked then Locked         
             'aa': HSG(H=-9991,  S=-27.175, G=-1.57),
             'ac': HSG(H=-11389, S=-28.963, G=-2.44),
@@ -71,7 +72,8 @@ dublets = {
             'tc': HSG(H=-9166,  S=-21.535, G=-2.48),
             'tg': HSG(H=-10046, S=-22.591, G=-3.08),
             'tt': HSG(H=-10419, S=-27.683, G=-1.83)
-        }
+}
+
 
 def divalent_to_monovalent(divalent_mM, dntp_mM):
     """Convert divalent cation concentration to monovalent equivalent (mM)."""
@@ -135,32 +137,19 @@ def calc_lna_tm(seq, dna_conc_nM, K_mM=50, divalent_mM=3, dntp_mM=.8,
 # the thoughts are that the salting method is Owczazry online and I'm using SantaLucia also my LNA tables could just be out of date
 
 
+# big = "C"
+# plus = f"+{big}"
+# small = big.lower() 
+# for i in range(12,40,2):
+#     first_half = i //2
+#     # print(f"{i}	{big*first_half}{plus*3}{big*first_half}")
+
+#     print(round(calc_lna_tm((big*first_half + small*3 + big*first_half),200),1))
 
 
 
+# Seq1	ATCGTATGCTGATCTGATCAC
+# Seq2	AACGTTTGCTGATCTAATCAC
+# Seq3	TTCGCATGCCGATCAGATCAC
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
