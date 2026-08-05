@@ -60,6 +60,21 @@ def get_data(rsids,flank_length=800):
         for re in as_completed(r):
             snp_list.extend(get_snp_data(re.result(),info))
                 
+    info={}
+    l1=[]
+    with ThreadPoolExecutor() as e:
+        f=[e.submit(request_data,f"{ENSEMBL_REST}/variation/homo_sapiens",json.dumps({"ids":rsids[i1:i1+200]})) for i1 in range(0,len(rsids),200)]
+        for fe in as_completed(f):
+            for i in process_data(fe.result(),flank_length):
+                all[i["rsid"]]=i
+                l1.append(t:=f"{i["chom"]}:{i["start"]}..{i["end"]}:1")
+                info[t]=i
+
+        snp_list=[]
+        r=[e.submit(request_data,f"{ENSEMBL_REST}/sequence/region/human",json.dumps({"regions" :l1[i:i+50]})) for i in range(0,len(l1),50)]
+        for re in as_completed(r):
+            snp_list.extend(get_snp_data(re.result(),info))
+                
     return snp_list, all
 
 
