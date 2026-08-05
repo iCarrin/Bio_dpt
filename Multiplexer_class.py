@@ -1,11 +1,12 @@
 import primer3
-from Primer_Classes import Primer, Probe, FilterFail
+import logging
 from itertools import combinations,chain
 from Bio.Seq import Seq
-import logging
 from typing import Generator
+from io import BytesIO
+
+from Primer_Classes import Primer, Probe, FilterFail
 from pdfoutput import create_output_json
-from datetime import datetime
 
 class Multiplexer():
     def __init__(self,snp_df,alleles,**kwarg):
@@ -25,7 +26,7 @@ class Multiplexer():
         self.hairpin_goal=kwarg.get("hairpin_goal",-3.0)
         self.target_gc=kwarg.get("target_gc",50.0)
         self.heterodimer_max = kwarg.get("heterodimer_max",50.0)
-        self.tm_max=kwarg.get("tm_max",40)
+        self.primer_dimer_distance=kwarg.get("primer_dimer_distance",20)
         self.min_probe_len=kwarg.get("min_probe_len",12)
         self.max_probe_len=kwarg.get("max_probe_len",20)
         self.min_primer_len=kwarg.get("min_primer_len",18)
@@ -35,13 +36,14 @@ class Multiplexer():
         self.pdfoutput_precision=kwarg.get("pdfoutput_precision",2)
         self.bad_alleles = []
         self.logger = logging.getLogger(__name__)
+        self.memo={}
 
-    def _check_heterodimer(self,primer1,primer2,memo={}):
-        if (key:=tuple(sorted((primer1,primer2)))) in memo:
-            return memo[key]
+    def _check_heterodimer(self,primer1,primer2):
+        if (key:=tuple(sorted((primer1,primer2)))) in self.memo:
+            return self.memo[key]
         result=self.primer3.calc_heterodimer(primer1,primer2)
-        ans=result.dg > self.heterodimer_max * 1000 and result.tm > self.tm_max
-        memo[key]= ans
+        ans=result.dg > self.heterodimer_max * 1000 and result.tm > (self.desired_tm + self.diff - self.primer_dimer_distance )
+        self.memo[key]= ans
         return ans 
     
     def _multiplex_primers(self,snp_site_probes):
@@ -380,16 +382,21 @@ class Multiplexer():
         # tre2.sort(key=lambda x : x.snpID)
         print("these alleles didn't make it")
         print(self.bad_alleles)
+        buffer=BytesIO()
+        create_output_json(tre,buffer,(1000,1000),self.pdfoutput_precision)
+        t=buffer.getvalue()
+        buffer.close()
         # print(forword,reverse,center,center_reject,sep="\n")
         # create_output_json(best_primers,"final_primer.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(fights,"final_fights.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(self.bad_alleles,"final_bad_combined.pdf",(120,350),self.pdfoutput_precision)
-        create_output_json(tre,"final_combined.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(tre2,"final_probe_combined.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(forword,"final_forword.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(reverse,"final_reverse.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(center,"final_center.pdf",(1000,1000),self.pdfoutput_precision)
         # create_output_json(center_reject,"final_center_reject.pdf",(900,1000),self.pdfoutput_precision)
+        return t
+
 
 
                     

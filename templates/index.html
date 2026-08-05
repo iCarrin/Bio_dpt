@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASPPDaMfSD</title>
+    <link href="{{ url_for('static', filename='styles/style.css')}}" rel="stylesheet" />
+    <script src="{{ url_for('static',filename='script/script.js')}}" defer></script>
+</head>
+
+<body>
+    <h1>Allele specific primer/ probe designer and multiplexer for snp detection</h1>
+
+    <div class="input-container">
+        <textarea id="input-field" rows="15" cols="100" placeholder="Enter rsids here"></textarea>
+        <!-- <input type="text" id="input-field" placeholder="Enter rsids here"><br> -->
+        <div class="below-input-field">
+            <input type="file" id="file-upload" value="Drop text file here">
+            <input type="submit" id="submit" value="Submit">
+        </div>
+    </div>
+    <div class="settings-container">
+        <div class="all-settings">
+            <label for="mv-conc">mv_conc: </label>
+            <input type="text" id="mv-conc" class="settings" value="50.0">
+            <label for="dv-conc">dv_conc</label>
+            <input type="text" id="dv-conc" class="settings" value="3">
+            <label for="dntp-conc">dntp_conc</label>
+            <input type="text" id="dntp-conc" class="settings" value="0.8">
+            <label for="dna-conc">dna_conc</label>
+            <input type="text" id="dna-conc" class="settings" value="200">
+            <label for="desired-tm">desired_tm</label>
+            <input type="text" id="desired-tm" class="settings" value="60.0">
+            <label for="diff">range of temp</label>
+            <input type="text" id="diff" class="settings" value="2.0">
+            <label for="primer-dimer-distance">primer_dimer_distance</label>
+            <input type="text" id="primer-dimer-distance" class="settings" value="20">
+            <label for="min-probe-len">min_probe_len</label>
+            <input type="text" id="min-probe-len" class="settings" value="12">
+            <label for="max-probe-len">max_probe_len</label>
+            <input type="text" id="max-probe-len" class="settings" value="28">
+            <label for="min-primer-len">min_primer_len</label>
+            <input type="text" id="min-primer-len" class="settings" value="18">
+            <label for="max-primer-len">max_primer_len</label>
+            <input type="text" id="max-primer-len" class="settings" value="24">
+            <label for="min-primer-dist">min_primer_dist</label>
+            <input type="text" id="min-primer-dist" class="settings" value="50">
+            <label for="max-primer-dist">max_primer_dist</label>
+            <input type="text" id="max-primer-dist" class="settings" value="250">
+        </div>
+        <details>
+            <summary>Advanced settings</summary><br>
+            <div class="all-settings">
+                <label for="flank-length">flank_length</label>
+                <input type="text" id="flank-length" class="settings" value="800">
+                <label for="dmso-conc">dmso_conc</label>
+                <input type="text" id="dmso-conc" class="settings" value="0.0">
+                <label for="dmso-fact">dmso_fact</label>
+                <input type="text" id="dmso-fact" class="settings" value="0.0">
+                <label for="formamide-conc">formamide_conc</label>
+                <input type="text" id="formamide-conc" class="settings" value="0.0">
+                <label for="annealing-temp-c">annealing_temp_c</label>
+                <input type="text" id="annealing-temp-c" class="settings" value="-10.0">
+                <label for="temp-c">temp_c</label>
+                <input type="text" id="temp-c" class="settings" value="37.0">
+                <label for="homodimer-goal">homodimer_goal</label>
+                <input type="text" id="homodimer-goal" class="settings" value="-3.0">
+                <label for="hairpin-goal">hairpin_goal</label>
+                <input type="text" id="hairpin-goal" class="settings" value="-3.0">
+                <label for="target-gc">target_gc</label>
+                <input type="text" id="target-gc" class="settings" value="50.0">
+                <label for="heterodimer-max">heterodimer_max</label>
+                <input type="text" id="heterodimer-max" class="settings" value="50.0">
+                <label for="pdfoutput-precision">pdfoutput_precision</label>
+                <input type="text" id="pdfoutput-precision" class="settings" value="2">
+                <label for="tm-method">tm_method</label>
+                <input type="text" id="tm-method" class="settings" value="santalucia">
+                <label for="salt-corrections-method">salt_corrections_method</label>
+                <input type="text" id="salt-corrections-method" class="settings" value="owczarzy">
+            </div>
+        </details>
+    </div>
+
+    <div class="output-container" id="output">
+        <embed id="pdfFrame" type="application/pdf" width="100%" height="600px">
+    </div>
+</body>
+
+</html>
