@@ -99,23 +99,21 @@ def get_rsids():
 def get_data(flank_length=800):
     rsids=list(get_rsids())
     all={}     
-    threads=[Fetch_Data(rsids[i1:i1+200],flank_length) for i1 in range(0,len(rsids),200)]
-    for i2 in threads:
-        i2.start()
-        
-    for i3 in threads:
-        i3.join()
-        all|=i3.result
-    lock=threading.Lock()
-    snp_list=[]
+    info={}
+    l1=[]
+    with ThreadPoolExecutor() as e:
+        f=[e.submit(request_data,f"{ENSEMBL_REST}/variation/homo_sapiens",json.dumps({"ids":rsids[i1:i1+200]})) for i1 in range(0,len(rsids),200)]
+        for fe in as_completed(f):
+            for i in process_data(fe.result(),flank_length):
+                all[i["rsid"]]=i
+                l1.append(t:=f"{i["chom"]}:{i["start"]}..{i["end"]}:1")
+                info[t]=i
 
-    threads1=[(t:=threading.Thread(target=get_snp_data,args=(i4,lock,snp_list,ask_user(i4["rsid"],i4["allele_str"]))),t.start())[0] for i4 in all.values()]    
-    for i5 in threads1:
-        i5.join()
-
+        snp_list=[]
+        r=[e.submit(request_data,f"{ENSEMBL_REST}/sequence/region/human",json.dumps({"regions" :l1[i:i+50]})) for i in range(0,len(l1),50)]
+        for re in as_completed(r):
+            snp_list.extend(get_snp_data(re.result(),info))
+                
     return snp_list, all
-
-
-   
 
 
