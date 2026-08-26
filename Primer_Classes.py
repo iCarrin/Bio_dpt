@@ -1,8 +1,6 @@
 import primer3
-from lna_tm import calc_lna_tm
-def calc_gc_content(sequence: str):
-    gc_total = sum(1 for b in sequence if b in ('G', 'C', 'c', 'g'))
-    return round(gc_total/len(sequence), 2)
+from lna_tm import calc_lna
+from calc_gc import calc_gc
 
 class FilterFail(Exception):
     def __init__(self, id:str, allele:str, fail_type:str, result = None):
@@ -42,7 +40,7 @@ class Primer():
         self.direction = direction
         self.sequence = sequence #this is the primer length
         self.length = len(sequence)
-        self.gc_content = calc_gc_content(sequence)
+        self.gc_content = calc_gc(sequence)
         self.target_gc = target_gc
         self.rank = abs(self.tm - desired_tm) + abs(self.gc_content - target_gc)
     def to_list(self,percision):
