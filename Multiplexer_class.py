@@ -6,6 +6,7 @@ import logging
 from typing import Generator
 from pdfoutput import create_output_json
 from datetime import datetime
+from lna_tm_shiny import find_lowest_delta
 
 class Multiplexer():
     def __init__(self,snp_df,alleles,**kwarg):
@@ -219,7 +220,7 @@ class Multiplexer():
                 for segment in [trimmed, trimmed[:-1], trimmed[1:]]:
                     cof[4] += 1 
                     try:                                           
-                        probes.append(Probe(snp_id, allele, segment, direction, self.primer3, self.desired_tm, self.diff, self.homodimer_goal, self.hairpin_goal,self.target_gc))
+                        probes.append(Probe(snp_id, allele, segment, direction, self.primer3, self.desired_tm, self.diff, self.homodimer_goal, self.hairpin_goal,self.target_gc, self.salt_corrections_method))
                     except FilterFail as e:
                         match e.fail_type:
                             case "lower Tm":
@@ -254,7 +255,7 @@ class Multiplexer():
                 #and then a list in that dictionary of sequence and lengths. Storing the name over and over seems redundant ID
             
                 try:                                     #these need to be user controlled inputs
-                    yield Primer(snp_id, allele, trimmed, direction,self.primer3 ,self.desired_tm, self.diff, self.homodimer_goal, self.hairpin_goal,self.target_gc)
+                    yield Primer(snp_id, allele, trimmed, direction,self.primer3 ,self.desired_tm, self.diff, self.homodimer_goal, self.hairpin_goal,self.target_gc, self.salt_corrections_method)
                 except FilterFail as e:
                     # print(e)
                     pass
@@ -264,6 +265,7 @@ class Multiplexer():
             self.logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {self.min_primer_len} long and it ended up only being {len(seq)}")
             raise ValueError
         # return primers
+    
 
     def _generate_allele_specific_probes(self) -> list[list[Probe]]:
         all_probes = []
@@ -277,10 +279,12 @@ class Multiplexer():
             flank_len = self.max_probe_len - self.max_probe_len//2#this gives the longer half
             #this gives us the longer half so in case we need to drop a g form the 5' end it balances better
             forward = lna_sequence[snp_pos - flank_len : snp_pos+(flank_len)+1]#this gets the largest segment.   
-            forward_probes = self._make_probes(forward, snp_id, allele,index=i) if allele != "G" or "A" not in known_allele_list else []
-
             reverse = str(Seq(lna_sequence[snp_pos-flank_len : snp_pos+flank_len+1]).reverse_complement()) #creates a Biopython sequence, gets the reverse complement, and converts is back to a string                                                                  #adding a check to see if 
-            reverse_probes = self._make_probes(reverse,snp_id, allele, "reverse",index=i) if allele != "C" or "A" not in known_allele_list else []
+
+
+
+            forward_probes = self._make_probes(forward, snp_id, allele,index=i) if find_lowest_delta(forward, known_allele_list, index=i) < 10 else print("cowabung dudes! (1)")
+            reverse_probes = self._make_probes(reverse, snp_id, allele, "reverse",index=i) if find_lowest_delta(forward, known_allele_list, index=i) < 10 else print("cowabung dudes! (2)")
 
             probes = (forward_probes + reverse_probes)
             probes.sort(key=lambda x: x.rank)

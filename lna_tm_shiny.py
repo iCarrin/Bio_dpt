@@ -1,5 +1,6 @@
 import math
-import primer3
+import re
+from Bio.Seq import Seq
 from calc_gc import calc_gc 
 from collections import namedtuple
 
@@ -124,20 +125,32 @@ def parse_seq(seq):
         chars.append(char)
     return "".join(chars)
 
-def check_sym(seq, comp_seq):
-    for i in range(len(seq)):
-        if counter_char[seq[i]] != comp_seq[-(i+1)]:
+def check_sym(seq):
+    n = len(seq)
+    for i in range(n):
+        if counter_char[seq[i]] != seq[n - 1 - i]:
             return False
-    else:
-        return True
+    return True
+def make_comp(parsed_seq, allele=None):
+    #make the complementery sequence from the sequence given (extra work load but keeps me from passing around stuff I usually won't need)
+    pure_comp = str(Seq(parsed_seq.upper()).reverse_complement())
+    if allele == None:
+        # if this is just normal finding of temp then there's no need to mess with alleles. This is the true complementary sequence
+        return pure_comp
 
-def calc_tm_with_lna(seq, comp_seq, dna_conc_nM=200, K_mM=50, divalent_mM=3, dntp_mM=.8,
+    #if an allele has been given then we will hot swap the allele with the new one to see what the new sequence is. This is still using parsed_seq which hasn't been changed
+    middle = re.search(r'[a,t,c,g]+', parsed_seq)
+    location = middle.start()
+    comp = pure_comp[:-location-2] + allele + pure_comp[-location-1:]
+    return comp
+
+def calc_tm_with_lna(seq_unparse, allele, dna_conc_nM=200, K_mM=50, divalent_mM=3, dntp_mM=.8,
                 dmso_conc=0, dmso_fact=0, formamide_conc=0, salt="ow"):
-    seq = parse_seq(seq)
-    comp_seq = parse_seq(comp_seq)
+    seq = parse_seq(seq_unparse)
+    comp_seq = make_comp(seq, allele)
     seq_len = len(seq)
     correction = 0
-    sym = check_sym(seq, comp_seq)
+    sym = check_sym(seq)
     gc_content = calc_gc(seq)
     if salt.lower() != "ow":
         salt = "santa"
@@ -148,6 +161,7 @@ def calc_tm_with_lna(seq, comp_seq, dna_conc_nM=200, K_mM=50, divalent_mM=3, dnt
 
     for i in range(len(seq) - 1):
         window = seq[i:i+2] + '/' + comp_seq[-i-1:-i-3:-1]
+        print(window)
         try:
             H += dublets[window].H
             S += dublets[window].S
@@ -180,7 +194,18 @@ def calc_tm_with_lna(seq, comp_seq, dna_conc_nM=200, K_mM=50, divalent_mM=3, dnt
 
     return Tm
 
-print(calc_tm_with_lna("ATACGGGC+T+C+GATAGCTAC", "GTAGCTATCGAGCCCGTAT"))
+def find_lowest_delta(seq_unparse, alleles, dna_conc_nM=200, K_mM=50, divalent_mM=3, dntp_mM=.8,
+                dmso_conc=0, dmso_fact=0, formamide_conc=0, salt="ow"):
+    lowest=10000
+    for allele in alleles:
+        delta_tm = calc_tm_with_lna(seq_unparse, allele, dna_conc_nM, K_mM, divalent_mM, dntp_mM,
+                dmso_conc, dmso_fact, formamide_conc, salt)
+        if delta_tm < lowest:
+            lowest = delta_tm
+    return lowest
+# print(calc_tm_with_lna("AAAAA+A+A+AAAAA", "TTTTTTTTTTTT", salt="santa"))
+
+# print(primer3.calc_tm("AAAAAAAAAAAA", 50, 3, .8, 200, salt_corrections_method="santalucia"))
 
 # only related to primer3py
 # dmso_conc     =
@@ -198,5 +223,8 @@ print(calc_tm_with_lna("ATACGGGC+T+C+GATAGCTAC", "GTAGCTATCGAGCCCGTAT"))
 # # 1. Owczarzy, R., You, Y., Groth, C. L., et al. (2011). "Stability and Mismatch Discrimination of Locked Nucleic Acid−DNA Duplexes." *Biochemistry* 50(40), 9988-10009.
 # # 2. SantaLucia, J. Jr. (1998). "A unified view of polymer, dumbbell, and oligonucleotide DNA nearest-neighbor thermodynamics." *Proc. Natl. Acad. Sci. U.S.A.* 95(4), 1460-1465.  
 # from primer3-py scr/libprimer3/oligo.c line 371
+
+
+
 
 
