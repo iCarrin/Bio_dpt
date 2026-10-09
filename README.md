@@ -8,8 +8,10 @@ The final list of SNP Allele combos with their associated probes and primers are
 
 TODO
 add prime blasting * this is low priority
+add prime blasting * this is low priority
 update LNA.
     currently we hard code the middle triplet as LNA but this might not be the best thing.
+    Add Bio Info Zack's code to find the largest TM delta instead of trusting the locked tripplet will always be the best. * top priority
     Add Bio Info Zack's code to find the largest TM delta instead of trusting the locked tripplet will always be the best. * top priority
 Dummy testing 
     do with website because CLI is obsolete.

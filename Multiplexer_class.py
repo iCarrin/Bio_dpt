@@ -223,7 +223,7 @@ class Multiplexer():
                 for segment in [trimmed, trimmed[:-1], trimmed[1:]]:
                     cof[4] += 1 
                     try:                                           
-                        probes.append(Probe(snp_id, allele, segment, direction, self.primer3, self.desired_tm, self.diff, self.homodimer_goal, self.hairpin_goal,self.target_gc))
+                        probes.append(Probe(snp_id, allele, segment, direction, self.primer3, self.desired_tm, self.diff, self.homodimer_goal, self.hairpin_goal,self.target_gc, self.salt_corrections_method))
                     except FilterFail as e:
                         match e.fail_type:
                             case "lower Tm":
@@ -258,7 +258,7 @@ class Multiplexer():
                 #and then a list in that dictionary of sequence and lengths. Storing the name over and over seems redundant ID
             
                 try:                                     #these need to be user controlled inputs
-                    yield Primer(snp_id, allele, trimmed, direction,self.primer3 ,self.desired_tm, self.diff, self.homodimer_goal, self.hairpin_goal,self.target_gc)
+                    yield Primer(snp_id, allele, trimmed, direction,self.primer3 ,self.desired_tm, self.diff, self.homodimer_goal, self.hairpin_goal,self.target_gc, self.salt_corrections_method)
                 except FilterFail as e:
                     # print(e)
                     pass
@@ -268,6 +268,7 @@ class Multiplexer():
             self.logger.warning(f"The length of your {direction} primer {snp_id} allele {allele} wasn't long enough. \nYou needed one at least {self.min_primer_len} long and it ended up only being {len(seq)}")
             raise ValueError
         # return primers
+    
     
 
     def _generate_allele_specific_probes(self) -> list[list[Probe]]:

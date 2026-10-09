@@ -1,6 +1,9 @@
 import primer3
 from lna_tm_shiny import calc_tm_with_lna
 from calc_gc import calc_gc
+import primer3
+from lna_tm_shiny import calc_tm_with_lna
+from calc_gc import calc_gc
 
 class FilterFail(Exception):
     def __init__(self, id:str, allele:str, fail_type:str, result = None):
@@ -60,7 +63,15 @@ class Probe(Primer):
 # dmso_conc     =
 # dmso_fact     = 
 # formamide_conc=
+# only related to primer3py
+# dmso_conc     =
+# dmso_fact     = 
+# formamide_conc=
 
+# dna_conc_nM = dna_conc = Oligo Conc
+# K_mM = mv_conc = Na+ Conc
+# divalent_mM = dv_conc = Mg++ Conc
+# dntp_mM = dntp_conc = dNTPs Conc
 # dna_conc_nM = dna_conc = Oligo Conc
 # K_mM = mv_conc = Na+ Conc
 # divalent_mM = dv_conc = Mg++ Conc
