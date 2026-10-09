@@ -2,6 +2,10 @@ from flask import Flask,Response, render_template,request
 import json
 from fetch_snp_data import get_data
 from Multiplexer_class import Multiplexer
+# test url's for both calls
+# https://rest.ensembl.org/variation/homo_sapiens/rs1799971
+# https://rest.ensembl.org/sequence/region/human/6:154039462..154039862:1?
+# https://rest.ensembl.org/sequence/region/human/6:154039653..154039671:1?
 l1=[
         ("mv_conc",float), ("dv_conc",int), 
         ("dntp_conc",float), ("dna_conc",int), 

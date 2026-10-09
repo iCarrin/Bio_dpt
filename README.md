@@ -35,3 +35,17 @@ Make sure the probes of the same SNP all fall in the same range
 
 (link to the study on LNA's)[https://pubs.acs.org/bichaw/article-pdf/50/43/9352/7881128/bi200904e.pdf]
 
+
+- add the delta tm for the probes read outs
+- make sure the delta doesn't slip past (go from a 11 to a 9)
+[-] revert to pre website
+- keep both probes that work
+- have sets of primers / add them to the print out
+- make sure that the primers are matched to have the total length be sub 150
+- check that the forward and reverse terminology was reverted correctly (the reverse complement is the reverse one for example)
+- make lna_tm_shiny a class 
+[-] swap the imports to themo.stuff
+- add plusses back into the probes
+
+
+

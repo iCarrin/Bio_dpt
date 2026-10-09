@@ -6,6 +6,10 @@ ENSEMBL_REST = "https://rest.ensembl.org"
 
 def request_data(url,data):
     r=requests.post(url, headers={ "Content-Type" : "application/json", "Accept" : "application/json"}, data=data)
+    if not r.ok:
+        print("STATUS:", r.status_code)
+        print("BODY:", r.text[:500])
+        print("PAYLOAD SAMPLE:", str(r.json)[:500])
     r.raise_for_status()
     return r.json()
 
@@ -20,9 +24,9 @@ def process_data(info,flank_length):
             "rsid":rsid,
             "chom":v["mappings"][0]["seq_region_name"],
             "allele_str":possible_alleles,
-            "start":(t:=max(1,p-800)),
-            "end":p+800,
-            "rel_pos":flank_length if t>1 else p
+            "start":(t:=max(1,p-flank_length)),
+            "end":p+flank_length,
+            "rel_pos": flank_length if t>1 else p
             } 
         
 def get_snp_data(resp,info):

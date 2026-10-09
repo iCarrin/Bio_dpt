@@ -3,7 +3,7 @@ import re
 from Bio.Seq import Seq
 from calc_gc import calc_gc 
 from collections import namedtuple
-
+ 
 hs = namedtuple("hs", ["H", "S"])
 # calc temp of both sides, add the temp of the LNAs to one
 dublets = {
@@ -127,33 +127,48 @@ def parse_seq(seq):
 
 def check_sym(seq):
     n = len(seq)
+    if n % 2 != 0:
+        return False
     for i in range(n):
         if counter_char[seq[i]] != seq[n - 1 - i]:
             return False
     return True
-def make_comp(parsed_seq, allele=None):
+def make_comp(parsed_seq, allele):
     #make the complementery sequence from the sequence given (extra work load but keeps me from passing around stuff I usually won't need)
     pure_comp = str(Seq(parsed_seq.upper()).reverse_complement())
     if allele == None:
         # if this is just normal finding of temp then there's no need to mess with alleles. This is the true complementary sequence
         return pure_comp
 
+
     #if an allele has been given then we will hot swap the allele with the new one to see what the new sequence is. This is still using parsed_seq which hasn't been changed
     middle = re.search(r'[a,t,c,g]+', parsed_seq)
-    location = middle.start()
-    comp = pure_comp[:-location-2] + allele + pure_comp[-location-1:]
+    location = middle.start() 
+    comp = pure_comp[:-location-2] + counter_char[allele] + pure_comp[-location-1:]
     return comp
 
-def calc_tm_with_lna(seq_unparse, allele, dna_conc_nM=200, K_mM=50, divalent_mM=3, dntp_mM=.8,
-                dmso_conc=0, dmso_fact=0, formamide_conc=0, salt="ow"):
-    seq = parse_seq(seq_unparse)
+def calc_tm_with_lna(seq_unparsed, thermo, allele=None):
+
+    dna_conc_nM = thermo.dna_conc 
+    K_mM = thermo.mv_conc
+    divalent_mM = thermo.dv_conc
+    dntp_mM = thermo.dntp_conc
+    dmso_conc = thermo.dmso_conc
+    dmso_fact = thermo.dmso_fact
+    formamide_conc = thermo.formamide_conc
+    salt = thermo.salt_correction_method
+
+    seq = parse_seq(seq_unparsed)
     comp_seq = make_comp(seq, allele)
     seq_len = len(seq)
     correction = 0
     sym = check_sym(seq)
     gc_content = calc_gc(seq)
-    if salt.lower() != "ow":
-        salt = "santa"
+    if salt:
+        if salt.lower() != "owczarzy":
+            salt = "santalucia"
+    else:
+        salt = "santalucia"
 
         
     H = 0
@@ -161,12 +176,12 @@ def calc_tm_with_lna(seq_unparse, allele, dna_conc_nM=200, K_mM=50, divalent_mM=
 
     for i in range(len(seq) - 1):
         window = seq[i:i+2] + '/' + comp_seq[-i-1:-i-3:-1]
-        print(window)
         try:
             H += dublets[window].H
             S += dublets[window].S
         except:
-           print("there was no match for you DNA doublet in the dictionary. Likely a 'N' or something snuck in")
+           print(f"there was no match for you DNA doublet in the dictionary. Likely a 'N' or something snuck in \n \
+                 ({window} at location {i} on the forward)")
 
     for end in [0, -1]:
         if seq[end] in ["A", "T", "a", "t"]:
@@ -176,36 +191,42 @@ def calc_tm_with_lna(seq_unparse, allele, dna_conc_nM=200, K_mM=50, divalent_mM=
             H += .1
             S += -2.8
 
-    if salt == "santa":
+    if salt == "santalucia":
         S = santa_salt_correction(K_mM, divalent_mM, dntp_mM, seq_len, S)
-    elif salt =="ow":
+    elif salt =="owczarzy":
         correction = ow_salt_correction(divalent_mM, dntp_mM, K_mM, gc_content, seq_len)
+    else:
+        print("santalucia or owczarzy didn't make it here")
 
 
     # Compute Tm 
-    Tm = (H*1000) / (S + 1.9872 * math.log(dna_conc_nM / (4e9 if sym == False else 1e9)))
-    if salt == "ow":
-        Tm = 1/((1/Tm)+correction) - 273.15
+    tm = (H*1000) / (S + 1.9872 * math.log(dna_conc_nM / (4e9 if sym == False else 1e9)))
+    if salt == "owczarzy":
+        tm = 1/((1/tm)+correction) - 273.15
     else:
-        Tm -= 273.15
+        tm -= 273.15
     # DMSO and formamide corrections
-    Tm -= dmso_conc * dmso_fact
-    Tm += (0.453 * gc_content - 2.88) * formamide_conc
+    tm -= dmso_conc * dmso_fact
+    tm += (0.453 * gc_content - 2.88) * formamide_conc
+    if allele != None:
+        print(f'the missmatch allele was {counter_char[allele]} and the is {tm} vs normal of {calc_tm_with_lna(seq_unparsed, thermo)}')
+    return tm
 
-    return Tm
-
-def find_lowest_delta(seq_unparse, alleles, dna_conc_nM=200, K_mM=50, divalent_mM=3, dntp_mM=.8,
-                dmso_conc=0, dmso_fact=0, formamide_conc=0, salt="ow"):
+def find_lowest_delta(seq_unparsed, thermo, alleles):
     lowest=10000
     for allele in alleles:
-        delta_tm = calc_tm_with_lna(seq_unparse, allele, dna_conc_nM, K_mM, divalent_mM, dntp_mM,
-                dmso_conc, dmso_fact, formamide_conc, salt)
+        missmatch_tm = calc_tm_with_lna(seq_unparsed, thermo, allele)
+        normal_tm = calc_tm_with_lna(seq_unparsed, thermo)
+        delta_tm = normal_tm - missmatch_tm
         if delta_tm < lowest:
             lowest = delta_tm
+    print(f'lowest for {seq_unparsed} - {lowest}')
     return lowest
-# print(calc_tm_with_lna("AAAAA+A+A+AAAAA", "TTTTTTTTTTTT", salt="santa"))
 
-# print(primer3.calc_tm("AAAAAAAAAAAA", 50, 3, .8, 200, salt_corrections_method="santalucia"))
+
+
+
+# print(primer3.calc_tm("AAAAAAAAAAAA", 50, 3, .8, 200, salt_correction_method="santalucia"))
 
 # only related to primer3py
 # dmso_conc     =

@@ -13,9 +13,8 @@ class Primer():
     def _calc_tm(self, sequence, thermo):
         return thermo.calc_tm(sequence)
 
-    def __init__(self, snp_id, allele, sequence, direction, thermo, desired_tm: float, diff: float, homodimer_goal: float, hairpin_goal: float, target_gc: float, salt_corrections_method):
-
-        self.tm = self._calc_tm(sequence, thermo, salt_corrections_method)
+    def __init__(self, snp_id, allele, sequence, direction, thermo, desired_tm: float, diff: float, homodimer_goal: float, hairpin_goal: float, target_gc: float):
+        self.tm = self._calc_tm(sequence, thermo)
         if self.tm < (desired_tm-diff):
             raise FilterFail(snp_id, allele, "lower Tm", self.tm)
         if self.tm > (desired_tm+diff):
@@ -49,12 +48,13 @@ class Primer():
 
         
 class Probe(Primer):
-    def _calc_tm(self, sequence, thermo, salt_corrections_method):
+    def _calc_tm(self, sequence, thermo):
                                                                                             
-        return calc_tm_with_lna(sequence, thermo.dna_conc, thermo.mv_conc, thermo.dv_conc, thermo.dntp_conc, thermo.dmso_conc, thermo.dmso_fact, thermo.formamide_conc, salt_corrections_method)
+        return calc_tm_with_lna(sequence, thermo)
     
-    def __init__(self, snp_id, allele, sequence, direction, thermo, desired_tm: float, diff: float, homodimer_goal: float, hairpin_goal: float , target_gc: float, salt_corrections_method):
-        super().__init__(snp_id, allele, sequence, direction, thermo, desired_tm, diff, homodimer_goal, hairpin_goal, target_gc, salt_corrections_method)
+    def __init__(self, snp_id, allele, sequence, direction, thermo, desired_tm: float, diff: float, homodimer_goal: float, hairpin_goal: float , target_gc: float):
+        super().__init__(snp_id, allele, sequence, direction, thermo, desired_tm, diff, homodimer_goal, hairpin_goal, target_gc)
+        # self.delta 
   
 # only related to primer3py
 # dmso_conc     =

@@ -8,7 +8,7 @@ from io import BytesIO
 from Primer_Classes import Primer, Probe, FilterFail
 from pdfoutput import create_output_json
 from datetime import datetime
-from lna_tm_shiny import find_lowest_delta
+from lna_tm_shiny import find_lowest_delta, calc_tm_with_lna
 
 class Multiplexer():
     def __init__(self,snp_df,alleles,**kwarg):
@@ -20,8 +20,8 @@ class Multiplexer():
             dna_conc=kwarg.get("dna_conc",200), dmso_conc=kwarg.get("dmso_conc",0.0), 
             dmso_fact=kwarg.get("dmso_fact",0.0), formamide_conc=kwarg.get("formamide_conc",0.0),
             annealing_temp_c=kwarg.get("annealing_temp_c",-10.0), temp_c=kwarg.get("temp_c",37), 
-            tm_method=kwarg.get("tm_method","santalucia"), salt_corrections_method=kwarg.get("salt_corrections_method","owczarzy")) 
-
+            tm_method=kwarg.get("tm_method","santalucia"), salt_correction_method=kwarg.get("salt_correction_method","owczarzy")) 
+        
         self.desired_tm=kwarg.get("desired_tm",60.0)
         self.diff=kwarg.get("diff",2)
         self.homodimer_goal=kwarg.get("homodimer_goal",-3.0)
@@ -30,11 +30,11 @@ class Multiplexer():
         self.heterodimer_max = kwarg.get("heterodimer_max",50.0)
         self.primer_dimer_distance=kwarg.get("primer_dimer_distance",20)
         self.min_probe_len=kwarg.get("min_probe_len",12)
-        self.max_probe_len=kwarg.get("max_probe_len",20)
+        self.max_probe_len=kwarg.get("max_probe_len",18)
         self.min_primer_len=kwarg.get("min_primer_len",18)
         self.max_primer_len=kwarg.get("max_primer_len",24)
-        self.min_primer_dist=kwarg.get("min_primer_dist",50)
-        self.max_primer_dist=kwarg.get("max_primer_dist",75)
+        self.min_primer_dist=kwarg.get("min_primer_dist",10)
+        self.max_primer_dist=kwarg.get("max_primer_dist",150)
         self.pdfoutput_precision=kwarg.get("pdfoutput_precision",2)
         self.bad_alleles = []
         self.logger = logging.getLogger(__name__)
@@ -223,7 +223,7 @@ class Multiplexer():
                 for segment in [trimmed, trimmed[:-1], trimmed[1:]]:
                     cof[4] += 1 
                     try:                                           
-                        probes.append(Probe(snp_id, allele, segment, direction, self.primer3, self.desired_tm, self.diff, self.homodimer_goal, self.hairpin_goal,self.target_gc, self.salt_corrections_method))
+                        probes.append(Probe(snp_id, allele, segment, direction, self.primer3, self.desired_tm, self.diff, self.homodimer_goal, self.hairpin_goal,self.target_gc))
                     except FilterFail as e:
                         match e.fail_type:
                             case "lower Tm":
@@ -258,7 +258,7 @@ class Multiplexer():
                 #and then a list in that dictionary of sequence and lengths. Storing the name over and over seems redundant ID
             
                 try:                                     #these need to be user controlled inputs
-                    yield Primer(snp_id, allele, trimmed, direction,self.primer3 ,self.desired_tm, self.diff, self.homodimer_goal, self.hairpin_goal,self.target_gc, self.salt_corrections_method)
+                    yield Primer(snp_id, allele, trimmed, direction,self.primer3 ,self.desired_tm, self.diff, self.homodimer_goal, self.hairpin_goal,self.target_gc)
                 except FilterFail as e:
                     # print(e)
                     pass
@@ -277,22 +277,28 @@ class Multiplexer():
             #this is a lazy way to put an LNA triplet into the middle of our probe sequence
             lna_sequence = sequence[:snp_pos-1] + (sequence[snp_pos-1:snp_pos+2]).lower() + sequence[snp_pos+2:]
             known_allele_list = self.known_alleles[snp_id]['allele_str']
-      
+            known_allele_list.remove(allele)
             #add a check here for length so that make primers doesn't have to.
             flank_len = self.max_probe_len - self.max_probe_len//2#this gives the longer half
             #this gives us the longer half so in case we need to drop a g form the 5' end it balances better
             forward = lna_sequence[snp_pos - flank_len : snp_pos+(flank_len)+1]#this gets the largest segment.   
-            reverse = str(Seq(lna_sequence[snp_pos-flank_len : snp_pos+flank_len+1]).reverse_complement()) #creates a Biopython sequence, gets the reverse complement, and converts is back to a string                                                                  #adding a check to see if 
-
-
-
-            forward_probes = self._make_probes(forward, snp_id, allele,index=i) if find_lowest_delta(forward, known_allele_list, index=i) < 10 else print("cowabung dudes! (1)")
-            reverse_probes = self._make_probes(reverse, snp_id, allele, "reverse",index=i) if find_lowest_delta(forward, known_allele_list, index=i) < 10 else print("cowabung dudes! (2)")
+            reverse = str(Seq(lna_sequence[snp_pos-flank_len : snp_pos+flank_len+1]).reverse_complement()) #creates a Biopython sequence, gets the reverse complement, and converts is back to a string                                                                  
+            
+            if find_lowest_delta(forward, self.primer3, known_allele_list) > 11: 
+                forward_probes = self._make_probes(forward, snp_id, allele,index=i) 
+            else:
+                forward_probes = []
+                print("cowabung dudes! (1)")
+            if find_lowest_delta(reverse, self.primer3, known_allele_list) > 11: 
+                reverse_probes = self._make_probes(reverse, snp_id, allele, "reverse",index=i)
+            else: 
+                reverse_probes = []
+                print("cowabung dudes! (2)")
 
             probes = (forward_probes + reverse_probes)
             probes.sort(key=lambda x: x.rank)
-            return probes
-        
+            return probes                                                           
+            
         for i,snp in enumerate(self.snp_df):
             allele_probes = _make_allele_probes_list(snp["snpID"], snp["allele"], snp["sequence"], snp["position"],i)
             if allele_probes:
@@ -303,14 +309,18 @@ class Multiplexer():
         
         return all_probes
 
-    def generate_matching_primers(self,primer_king, direction, primer_start = 0): 
+    def generate_matching_primers(self, primer_king, direction, primer_start = 0): 
         """
             Generate matching primers for best allele-specific probe.
+
+            ## I was using the wrong terminology for forward and reverse (forward goes to the left of the probe) Quick and dirty the 
+            names were switched. 
+            - check that there are no other issues
         """
 
         if len(self.snp_df[0]['sequence']) < 1+(self.min_primer_dist+self.min_primer_len)*2:
             raise Exception("your sequence is so short it won't allow for even the shortest of primers at the minimum distance to be made" \
-            "Lower your min distance or have the API call for a longer string")
+            "Lower your min distance or have the API call for a longer DNA sequence")
         
         snp_dict = {}   
         for snp in self.snp_df:
@@ -323,9 +333,9 @@ class Multiplexer():
         middle = snp_dict['position']
         whole_sequence = snp_dict['sequence']
         #get the far sequence and reverse complement if necessary
-        if direction == "forward":
+        if direction == "reverse":
             far_sequence = whole_sequence[middle+self.min_primer_dist:middle+self.max_primer_dist]#everything from snp (middle) plus start dist cutting off at max if necessary (end is exclusive so +1)
-            '''                                  _______  
+            '''                                  ______  
                                                 |______\_
                                                 |________\ what we make eventually 
             _________________________|___________=====================("===" means reverse complement DNA)
@@ -333,8 +343,8 @@ class Multiplexer():
                                         min_dist away
             
             '''       
-        elif direction == "reverse":
-            far_sequence = whole_sequence[middle-self.max_primer_dist:middle-self.min_primer_dist-1]
+        elif direction == "forward":
+            far_sequence = str(Seq(whole_sequence[middle-self.max_primer_dist:middle-self.min_primer_dist-1]).reverse_complement())
 
             '''
                                     SNP
@@ -374,10 +384,10 @@ class Multiplexer():
         """
     
 
-        primers = self._generate_allele_specific_probes()
-        if len(primers)==0:
-            raise Exception(f"{len(primers)=}")
-        best_probes= self._multiplex_probes(primers)
+        probes = self._generate_allele_specific_probes()
+        if len(probes)==0:
+            raise Exception(f"{len(probes)=}")
+        best_probes= self._multiplex_probes(probes)
         if len(best_probes)==0:
             raise Exception(f"{len(best_probes)=}")
         forward, reverse, = self._multiplex_primers(best_probes)
