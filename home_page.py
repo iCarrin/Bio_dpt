@@ -12,7 +12,7 @@ l1=[
         ("dmso_conc",float), ("dmso_fact",float), 
         ("formamide_conc",float), ("annealing_temp_c",float), 
         ("temp_c",float), ("tm_method",str),
-        ("salt_corrections_method",str),
+        ("salt_correction_method",str),
         ("desired_tm", float),("diff", float),
         ("homodimer_goal", float),("hairpin_goal", float),
         ("target_gc",float),

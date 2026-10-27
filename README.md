@@ -48,6 +48,14 @@ Make sure the probes of the same SNP all fall in the same range
 - make lna_tm_shiny a class 
 [-] swap the imports to themo.stuff
 - add plusses back into the probes
-
+add prime blasting * this is low priority
+add prime blasting * this is low priority
+update LNA.
+    currently we hard code the middle triplet as LNA but this might not be the best thing.
+    Add Bio Info Zack's code to find the largest TM delta instead of trusting the locked tripplet will always be the best. * top priority
+    Add Bio Info Zack's code to find the largest TM delta instead of trusting the locked tripplet will always be the best. * top priority
+Dummy testing 
+    do with website because CLI is obsolete.
+add in shifting DNA string
 
 

@@ -223,7 +223,7 @@ class Multiplexer():
                 for segment in [trimmed, trimmed[:-1], trimmed[1:]]:
                     cof[4] += 1 
                     try:                                           
-                        probes.append(Probe(snp_id, allele, segment, direction, self.primer3, self.desired_tm, self.diff, self.homodimer_goal, self.hairpin_goal,self.target_gc, self.salt_corrections_method))
+                        probes.append(Probe(snp_id, allele, segment, direction, self.primer3, self.desired_tm, self.diff, self.homodimer_goal, self.hairpin_goal,self.target_gc, self.salt_correction_method))
                     except FilterFail as e:
                         match e.fail_type:
                             case "lower Tm":
@@ -258,7 +258,7 @@ class Multiplexer():
                 #and then a list in that dictionary of sequence and lengths. Storing the name over and over seems redundant ID
             
                 try:                                     #these need to be user controlled inputs
-                    yield Primer(snp_id, allele, trimmed, direction,self.primer3 ,self.desired_tm, self.diff, self.homodimer_goal, self.hairpin_goal,self.target_gc, self.salt_corrections_method)
+                    yield Primer(snp_id, allele, trimmed, direction,self.primer3 ,self.desired_tm, self.diff, self.homodimer_goal, self.hairpin_goal,self.target_gc, self.salt_correction_method)
                 except FilterFail as e:
                     # print(e)
                     pass
